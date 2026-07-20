@@ -5,8 +5,9 @@ import highcharts3d from 'highcharts/highcharts-3d';
 import { formatCurrency } from '../utils/financeCalculator';
 import { Plus, Activity, TrendingUp } from 'lucide-react';
 
-if (typeof Highcharts === 'object') {
+if (typeof Highcharts === 'object' && !Highcharts.is3dInit) {
     highcharts3d(Highcharts);
+    Highcharts.is3dInit = true;
 }
 
 const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClick }) => {

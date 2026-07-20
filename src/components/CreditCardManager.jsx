@@ -5,8 +5,9 @@ import highcharts3d from 'highcharts/highcharts-3d';
 import { CreditCard, Edit2, Trash2, Plus } from 'lucide-react';
 import { formatCurrency, calculateCreditCardAmortization } from '../utils/financeCalculator';
 
-if (typeof Highcharts === 'object') {
+if (typeof Highcharts === 'object' && !Highcharts.is3dInit) {
     highcharts3d(Highcharts);
+    Highcharts.is3dInit = true;
 }
 
 const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails }) => {
