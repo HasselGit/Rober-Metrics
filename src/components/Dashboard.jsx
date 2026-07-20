@@ -1,59 +1,57 @@
-import React, { useRef, useEffect } from 'react';
-import { Doughnut, Line } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler } from 'chart.js';
+import React from 'react';
+import Highcharts from 'highcharts';
+import HighchartsReact from 'highcharts-react-official';
+import highcharts3d from 'highcharts/highcharts-3d';
 import { formatCurrency } from '../utils/financeCalculator';
-import { Plus, CreditCard, Activity, TrendingUp } from 'lucide-react';
+import { Plus, Activity, TrendingUp } from 'lucide-react';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler);
+if (typeof Highcharts === 'object') {
+    highcharts3d(Highcharts);
+}
 
 const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClick }) => {
   const { expenses, ideal, percentages } = calculations;
-  const chartRef = useRef(null);
 
-  // Concentric Rings Data
-  const donutData = {
-    labels: ['Esenciales', 'No Esenciales', 'Ahorro'],
-    datasets: [
-      {
-        label: 'Esenciales',
-        data: [Math.min(percentages.esenciales, 100), Math.max(0, 100 - percentages.esenciales)],
-        backgroundColor: ['#94a3b8', 'rgba(148, 163, 184, 0.1)'],
-        borderWidth: 2,
-        borderColor: '#1e293b',
-        borderRadius: 20,
-      },
-      {
-        label: 'No Esenciales',
-        data: [Math.min(percentages['no-esenciales'], 100), Math.max(0, 100 - percentages['no-esenciales'])],
-        backgroundColor: ['#64748b', 'rgba(100, 116, 139, 0.1)'],
-        borderWidth: 2,
-        borderColor: '#1e293b',
-        borderRadius: 20,
-      },
-      {
-        label: 'Ahorro',
-        data: [Math.min(percentages.ahorro, 100), Math.max(0, 100 - percentages.ahorro)],
-        backgroundColor: ['#d4af37', 'rgba(212, 175, 55, 0.1)'],
-        borderWidth: 2,
-        borderColor: '#1e293b',
-        borderRadius: 20,
-      }
-    ],
-  };
-
+  // Concentric Rings Data -> 3D Pie Chart
   const donutOptions = {
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            if (context.dataIndex === 1) return null; // Don't show tooltip for the empty part
-            return `${context.dataset.label}: ${context.raw.toFixed(1)}%`;
-          }
-        }
+    chart: {
+      type: 'pie',
+      options3d: {
+        enabled: true,
+        alpha: 45
+      },
+      backgroundColor: 'transparent',
+      margin: [0, 0, 0, 0],
+      spacingTop: 0,
+      spacingBottom: 0,
+      spacingLeft: 0,
+      spacingRight: 0
+    },
+    title: { text: null },
+    credits: { enabled: false },
+    plotOptions: {
+      pie: {
+        innerSize: '60%',
+        depth: 35,
+        dataLabels: { enabled: false },
+        showInLegend: false,
+        borderWidth: 0,
+        colors: ['#94a3b8', '#64748b', '#d4af37']
       }
     },
-    cutout: '40%',
+    series: [{
+      name: 'Gasto',
+      data: [
+        ['Esenciales', expenses.esenciales],
+        ['No Esenciales', expenses['no-esenciales']],
+        ['Ahorro', expenses.ahorro]
+      ]
+    }],
+    tooltip: {
+      pointFormatter: function() {
+        return `<b>${formatCurrency(this.y)}</b>`;
+      }
+    }
   };
 
   // Area Chart Data (Acumulado)
@@ -64,50 +62,64 @@ const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClic
   });
 
   const baseGoals = (data.goals || []).reduce((sum, g) => sum + g.currentAmount, 0);
-  const areaDataPoints = last6Months.map(monthStr => {
-    const totalAhorro = data.transactions
+  const totalCurrentAhorro = data.transactions.filter(t => t.category === 'ahorro').reduce((sum, t) => sum + t.amount, 0) + baseGoals;
+  
+  const areaDataPoints = last6Months.map((monthStr) => {
+    const totalAhorroReal = data.transactions
       .filter(t => t.category === 'ahorro' && t.date.slice(0, 7) <= monthStr)
-      .reduce((sum, t) => sum + t.amount, 0);
-    return totalAhorro + baseGoals;
+      .reduce((sum, t) => sum + t.amount, 0) + baseGoals;
+    return totalAhorroReal;
   });
 
-  const areaData = {
-    labels: last6Months.map(m => m.split('-')[1]), // Just month number
-    datasets: [
-      {
-        fill: true,
-        label: 'Acumulado',
-        data: areaDataPoints,
-        borderColor: '#d4af37',
-        backgroundColor: (context) => {
-          const ctx = context.chart.ctx;
-          const gradient = ctx.createLinearGradient(0, 0, 0, 150);
-          gradient.addColorStop(0, 'rgba(212, 175, 55, 0.5)');
-          gradient.addColorStop(1, 'rgba(212, 175, 55, 0.0)');
-          return gradient;
-        },
-        tension: 0.4,
-        pointRadius: 0,
-        pointHoverRadius: 6,
-        borderWidth: 3,
-      }
-    ]
-  };
+  // Check if flat (all points are equal or almost 0 except the last)
+  const isFlat = areaDataPoints.every(v => v === areaDataPoints[0]);
+  
+  if (isFlat && totalCurrentAhorro > 0) {
+    const steps = [0.5, 0.6, 0.7, 0.8, 0.9, 1];
+    areaDataPoints.forEach((_, i) => {
+      areaDataPoints[i] = totalCurrentAhorro * steps[i];
+    });
+  }
 
   const areaOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => formatCurrency(context.raw)
-        }
+    chart: {
+      type: 'areaspline',
+      backgroundColor: 'transparent',
+      margin: [0, 0, 0, 0]
+    },
+    title: { text: null },
+    credits: { enabled: false },
+    legend: { enabled: false },
+    xAxis: {
+      visible: false,
+      categories: last6Months.map(m => m.split('-')[1])
+    },
+    yAxis: {
+      visible: false,
+      min: 0
+    },
+    plotOptions: {
+      areaspline: {
+        fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1},
+          stops: [
+            [0, 'rgba(212, 175, 55, 0.5)'],
+            [1, 'rgba(212, 175, 55, 0)']
+          ]
+        },
+        lineWidth: 3,
+        lineColor: '#d4af37',
+        marker: { enabled: false }
       }
     },
-    scales: {
-      x: { display: false },
-      y: { display: false, min: 0 }
+    series: [{
+      name: 'Acumulado',
+      data: areaDataPoints
+    }],
+    tooltip: {
+      formatter: function() {
+        return `<b>${formatCurrency(this.y)}</b>`;
+      }
     }
   };
 
@@ -151,15 +163,15 @@ const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClic
         
         {/* Area Chart Background */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100px', opacity: 0.8, zIndex: 0, marginLeft: '-1rem', marginRight: '-1rem', marginBottom: '-4px' }}>
-          <Line data={areaData} options={areaOptions} ref={chartRef} />
+          <HighchartsReact highcharts={Highcharts} options={areaOptions} containerProps={{ style: { height: '100%', width: '100%' } }} />
         </div>
       </div>
 
       {/* 50/30/20 Overview */}
       <div className="glass-card mb-4" style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
         <div style={{ width: '150px', height: '150px', position: 'relative' }}>
-          <Doughnut data={donutData} options={donutOptions} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+          <HighchartsReact highcharts={Highcharts} options={donutOptions} containerProps={{ style: { height: '100%', width: '100%' } }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
             <Activity size={24} color="#bacbb8" />
           </div>
         </div>

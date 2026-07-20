@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "chart.js": "^4.5.1",
+    "highcharts": "^13.0.0",
+    "highcharts-react-official": "^3.2.3",
     "lucide-react": "^1.25.0",
     "react": "^19.2.7",
     "react-chartjs-2": "^5.3.1",

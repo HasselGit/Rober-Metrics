@@ -1,51 +1,58 @@
 import React from 'react';
+import Highcharts from 'highcharts';
+import HighchartsReact from 'highcharts-react-official';
+import highcharts3d from 'highcharts/highcharts-3d';
 import { CreditCard, Edit2, Trash2, Plus } from 'lucide-react';
 import { formatCurrency, calculateCreditCardAmortization } from '../utils/financeCalculator';
-import { Bar } from 'react-chartjs-2';
+
+if (typeof Highcharts === 'object') {
+    highcharts3d(Highcharts);
+}
 
 const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails }) => {
   const projection = calculateCreditCardAmortization(creditCards);
 
-  const barData = {
-    labels: ['Mes 1', 'Mes 2', 'Mes 3', 'Mes 4', 'Mes 5', 'Mes 6', 'Mes 7', 'Mes 8', 'Mes 9', 'Mes 10', 'Mes 11', 'Mes 12'],
-    datasets: [
-      {
-        label: 'Deuda a pagar',
-        data: projection,
-        backgroundColor: (context) => {
-          const chart = context.chart;
-          const {ctx, chartArea} = chart;
-          if (!chartArea) return '#ff4757';
-          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-          gradient.addColorStop(0, '#b33939'); // Dark red base
-          gradient.addColorStop(0.8, '#ff7675'); // Bright neon
-          gradient.addColorStop(1, '#ff9f43'); // Hot tip
-          return gradient;
-        },
-        borderRadius: 8,
-        borderWidth: 0,
-      }
-    ]
-  };
-
   const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => formatCurrency(context.raw)
-        }
+    chart: {
+      type: 'column',
+      options3d: {
+        enabled: true,
+        alpha: 15,
+        beta: 15,
+        depth: 50,
+        viewDistance: 25
+      },
+      backgroundColor: 'transparent',
+      margin: [10, 0, 30, 0]
+    },
+    title: { text: null },
+    credits: { enabled: false },
+    legend: { enabled: false },
+    xAxis: {
+      categories: ['Mes 1', 'Mes 2', 'Mes 3', 'Mes 4', 'Mes 5', 'Mes 6', 'Mes 7', 'Mes 8', 'Mes 9', 'Mes 10', 'Mes 11', 'Mes 12'],
+      labels: { style: { color: '#bacbb8', fontFamily: 'Inter', fontSize: '10px' } },
+      lineColor: 'transparent',
+      gridLineColor: 'transparent',
+      tickWidth: 0
+    },
+    yAxis: {
+      visible: false,
+      min: 0
+    },
+    plotOptions: {
+      column: {
+        depth: 25,
+        color: '#ff4757',
+        borderWidth: 0
       }
     },
-    scales: {
-      y: {
-        display: false,
-      },
-      x: {
-        grid: { display: false, drawBorder: false },
-        ticks: { color: '#bacbb8', font: { family: 'Inter', size: 10 } }
+    series: [{
+      name: 'Deuda a pagar',
+      data: projection
+    }],
+    tooltip: {
+      formatter: function() {
+        return `<b>${formatCurrency(this.y)}</b>`;
       }
     }
   };
@@ -105,7 +112,7 @@ const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails
       <div className="glass-card mt-2">
         <h4 className="mb-3" style={{ fontSize: '1rem' }}>Proyección de Cuotas (12 Meses)</h4>
         <div style={{ height: '200px' }}>
-          <Bar data={barData} options={barOptions} />
+          <HighchartsReact highcharts={Highcharts} options={barOptions} containerProps={{ style: { height: '100%', width: '100%' } }} />
         </div>
       </div>
     </div>
