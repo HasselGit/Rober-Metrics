@@ -1,6 +1,7 @@
 import React from 'react';
 import Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
+import HighchartsReactModule from 'highcharts-react-official';
+const HighchartsReact = HighchartsReactModule.default || HighchartsReactModule;
 import { CreditCard, Edit2, Trash2, Plus } from 'lucide-react';
 import { formatCurrency, calculateCreditCardAmortization } from '../utils/financeCalculator';
 
