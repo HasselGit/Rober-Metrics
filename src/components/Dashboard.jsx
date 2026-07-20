@@ -80,7 +80,14 @@ const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClic
     chart: {
       type: 'areaspline',
       backgroundColor: 'transparent',
-      margin: [0, 0, 0, 0]
+      margin: [0, 0, 0, 0],
+      options3d: {
+        enabled: true,
+        alpha: 15,
+        beta: 15,
+        depth: 40,
+        viewDistance: 25
+      }
     },
     title: { text: null },
     credits: { enabled: false },

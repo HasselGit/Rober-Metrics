@@ -4,10 +4,13 @@ import './index.css'
 import App from './App.jsx'
 
 import Highcharts from 'highcharts';
-import highcharts3d from 'highcharts/highcharts-3d';
+import * as Highcharts3D from 'highcharts/highcharts-3d';
 
 if (typeof Highcharts === 'object') {
-    highcharts3d(Highcharts);
+    const init3D = typeof Highcharts3D === 'function' ? Highcharts3D : (Highcharts3D.default || Highcharts3D);
+    if (typeof init3D === 'function') {
+        init3D(Highcharts);
+    }
 }
 
 createRoot(document.getElementById('root')).render(
