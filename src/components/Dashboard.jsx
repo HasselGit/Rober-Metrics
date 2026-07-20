@@ -1,28 +1,43 @@
-import React from 'react';
-import { Doughnut, Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
+import React, { useRef, useEffect } from 'react';
+import { Doughnut, Line } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler } from 'chart.js';
 import { formatCurrency } from '../utils/financeCalculator';
-import { Plus, CreditCard, Activity } from 'lucide-react';
+import { Plus, CreditCard, Activity, TrendingUp } from 'lucide-react';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler);
 
 const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClick }) => {
   const { expenses, ideal, percentages } = calculations;
+  const chartRef = useRef(null);
 
+  // Concentric Rings Data
   const donutData = {
     labels: ['Esenciales', 'No Esenciales', 'Ahorro'],
     datasets: [
       {
-        data: [expenses.esenciales, expenses['no-esenciales'], expenses.ahorro],
-        backgroundColor: [
-          '#94a3b8', // Platinum for Esenciales
-          '#64748b', // Slate 500 for No Esenciales
-          '#d4af37'  // Gold for Ahorro
-        ],
-        borderColor: '#0f172a',
+        label: 'Esenciales',
+        data: [Math.min(percentages.esenciales, 100), Math.max(0, 100 - percentages.esenciales)],
+        backgroundColor: ['#94a3b8', 'rgba(148, 163, 184, 0.1)'],
         borderWidth: 2,
-        cutout: '75%',
+        borderColor: '#1e293b',
+        borderRadius: 20,
       },
+      {
+        label: 'No Esenciales',
+        data: [Math.min(percentages['no-esenciales'], 100), Math.max(0, 100 - percentages['no-esenciales'])],
+        backgroundColor: ['#64748b', 'rgba(100, 116, 139, 0.1)'],
+        borderWidth: 2,
+        borderColor: '#1e293b',
+        borderRadius: 20,
+      },
+      {
+        label: 'Ahorro',
+        data: [Math.min(percentages.ahorro, 100), Math.max(0, 100 - percentages.ahorro)],
+        backgroundColor: ['#d4af37', 'rgba(212, 175, 55, 0.1)'],
+        borderWidth: 2,
+        borderColor: '#1e293b',
+        borderRadius: 20,
+      }
     ],
   };
 
@@ -31,9 +46,68 @@ const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClic
       legend: { display: false },
       tooltip: {
         callbacks: {
+          label: (context) => {
+            if (context.dataIndex === 1) return null; // Don't show tooltip for the empty part
+            return `${context.dataset.label}: ${context.raw.toFixed(1)}%`;
+          }
+        }
+      }
+    },
+    cutout: '40%',
+  };
+
+  // Area Chart Data (Acumulado)
+  const last6Months = Array.from({length: 6}, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    return d.toISOString().slice(0, 7);
+  });
+
+  const baseGoals = (data.goals || []).reduce((sum, g) => sum + g.currentAmount, 0);
+  const areaDataPoints = last6Months.map(monthStr => {
+    const totalAhorro = data.transactions
+      .filter(t => t.category === 'ahorro' && t.date.slice(0, 7) <= monthStr)
+      .reduce((sum, t) => sum + t.amount, 0);
+    return totalAhorro + baseGoals;
+  });
+
+  const areaData = {
+    labels: last6Months.map(m => m.split('-')[1]), // Just month number
+    datasets: [
+      {
+        fill: true,
+        label: 'Acumulado',
+        data: areaDataPoints,
+        borderColor: '#d4af37',
+        backgroundColor: (context) => {
+          const ctx = context.chart.ctx;
+          const gradient = ctx.createLinearGradient(0, 0, 0, 150);
+          gradient.addColorStop(0, 'rgba(212, 175, 55, 0.5)');
+          gradient.addColorStop(1, 'rgba(212, 175, 55, 0.0)');
+          return gradient;
+        },
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        borderWidth: 3,
+      }
+    ]
+  };
+
+  const areaOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
           label: (context) => formatCurrency(context.raw)
         }
       }
+    },
+    scales: {
+      x: { display: false },
+      y: { display: false, min: 0 }
     }
   };
 
@@ -63,13 +137,22 @@ const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClic
         </button>
       </header>
 
-      {/* Acumulado Anual Card */}
-      <div className="glass-card mb-4" style={{ borderLeft: '4px solid var(--primary)' }}>
-        <p className="text-muted mb-1" style={{ fontSize: '0.875rem' }}>Ahorro Acumulado Anual (Proyectado)</p>
-        <h2 style={{ fontSize: '1.5rem', color: 'var(--primary)' }}>
-          {formatCurrency(data.transactions.filter(t => t.category === 'ahorro').reduce((sum, t) => sum + t.amount, 0) + (data.goals || []).reduce((sum, g) => sum + g.currentAmount, 0))}
-        </h2>
-        <p className="text-muted mt-1" style={{ fontSize: '0.75rem' }}>Suma de transferencias a ahorro y aportes a metas.</p>
+      {/* Acumulado Anual Card (Area Spline) */}
+      <div className="glass-card mb-4" style={{ position: 'relative', overflow: 'hidden', paddingBottom: '0' }}>
+        <div style={{ paddingBottom: '1.5rem', position: 'relative', zIndex: 1 }}>
+          <p className="text-muted mb-1" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <TrendingUp size={16} color="#d4af37" /> Ahorro Acumulado Anual
+          </p>
+          <h2 style={{ fontSize: '1.75rem', color: 'var(--primary)', marginBottom: '0' }}>
+            {formatCurrency(areaDataPoints[areaDataPoints.length - 1])}
+          </h2>
+          <p className="text-muted mt-1" style={{ fontSize: '0.75rem' }}>Proyección últimos 6 meses</p>
+        </div>
+        
+        {/* Area Chart Background */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100px', opacity: 0.8, zIndex: 0, marginLeft: '-1rem', marginRight: '-1rem', marginBottom: '-4px' }}>
+          <Line data={areaData} options={areaOptions} ref={chartRef} />
+        </div>
       </div>
 
       {/* 50/30/20 Overview */}

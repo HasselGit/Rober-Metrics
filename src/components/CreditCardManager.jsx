@@ -12,8 +12,18 @@ const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails
       {
         label: 'Deuda a pagar',
         data: projection,
-        backgroundColor: '#ff4757',
-        borderRadius: 4,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) return '#ff4757';
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, '#b33939'); // Dark red base
+          gradient.addColorStop(0.8, '#ff7675'); // Bright neon
+          gradient.addColorStop(1, '#ff9f43'); // Hot tip
+          return gradient;
+        },
+        borderRadius: 8,
+        borderWidth: 0,
       }
     ]
   };
