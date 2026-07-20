@@ -1,7 +1,11 @@
 const STORAGE_KEY = 'neo_fintech_data';
 
 export const defaultData = {
-  income: 1226600, // Defaulting to the user's base from Excel for a quick start
+  income: 1226600,
+  incomeSources: [
+    { id: 'is-1', name: 'Sueldo', amount: 1000000 },
+    { id: 'is-2', name: 'Sobresueldo', amount: 126600 },
+  ],
   transactions: [
     // Pre-seed some transactions from the Excel for demonstration
     { id: '1', date: '2026-07-01', description: 'Alquiler', amount: 300000, category: 'esenciales', type: 'expense' },
@@ -49,9 +53,18 @@ export const loadData = () => {
     if (serialized === null) {
       return defaultData;
     }
-    return JSON.parse(serialized);
+    const data = JSON.parse(serialized);
+    // Migration: if incomeSources doesn't exist, create one from the income total
+    if (!data.incomeSources || data.incomeSources.length === 0) {
+      data.incomeSources = [
+        { id: 'is-migrated', name: 'Ingreso Principal', amount: data.income || 0 }
+      ];
+    }
+    // Always keep data.income in sync with the sum of sources
+    data.income = data.incomeSources.reduce((sum, s) => sum + s.amount, 0);
+    return data;
   } catch (err) {
-    console.error("Error loading data from localStorage", err);
+    console.error('Error loading data from localStorage', err);
     return defaultData;
   }
 };

@@ -58,9 +58,6 @@ const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0' }}>
           <CreditCard size={20} color="#70a1ff" /> Mis Tarjetas
         </h2>
-        <button className="fab" onClick={onAdd} aria-label="Agregar Tarjeta">
-          <Plus size={24} />
-        </button>
       </header>
       
       {/* Cards List */}

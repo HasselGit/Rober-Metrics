@@ -1,20 +1,15 @@
 import React from 'react';
-import { Target, Edit2, Trash2, Plus, ArrowUpCircle } from 'lucide-react';
+import { Target, Edit2, Trash2, ArrowUpCircle } from 'lucide-react';
 import { formatCurrency } from '../utils/financeCalculator';
 
 const Goals = ({ goals, onAdd, onEdit, onDelete, onFund }) => {
   return (
     <div className="container" style={{ paddingBottom: '5rem' }}>
-      <header className="flex-between mb-4 sticky-header">
-        <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <Target size={20} color="#94a3b8" /> Mis Alcancías
-          </h2>
-          <h1 style={{ fontSize: '2.5rem' }}>Metas de Ahorro</h1>
-        </div>
-        <button className="fab" onClick={onAdd} aria-label="Agregar Meta">
-          <Plus size={24} />
-        </button>
+      <header className="mb-4 sticky-header">
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <Target size={20} color="var(--primary)" /> Mis Alcancías
+        </h2>
+        <h1 style={{ fontSize: '2.2rem' }}>Metas de Ahorro</h1>
       </header>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '1rem' }}>

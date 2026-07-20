@@ -10,9 +10,12 @@ import Subscriptions from './components/Subscriptions';
 import SubscriptionForm from './components/SubscriptionForm';
 import Goals from './components/Goals';
 import GoalForm from './components/GoalForm';
+import Liquidity from './components/Liquidity';
+import IncomeManager from './components/IncomeManager';
+import IncomeSourceForm from './components/IncomeSourceForm';
 import { loadData, saveData } from './utils/storage';
 import { calculate503020 } from './utils/financeCalculator';
-import { Wallet, PieChart, CreditCard, Clock, RefreshCw, Target } from 'lucide-react';
+import { Wallet, PieChart, CreditCard, Clock, Target, BarChart2, Plus } from 'lucide-react';
 
 function App() {
   const [data, setData] = useState(null);
@@ -37,6 +40,10 @@ function App() {
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [isFundingGoal, setIsFundingGoal] = useState(false);
+
+  // Income sources
+  const [showIncomeSourceForm, setShowIncomeSourceForm] = useState(false);
+  const [editingIncomeSource, setEditingIncomeSource] = useState(null);
 
   useEffect(() => {
     setData(loadData());
@@ -181,6 +188,30 @@ function App() {
     persistData(newData);
   };
 
+  // --- Income Sources ---
+  const handleSaveIncomeSource = (source) => {
+    const newData = { ...data };
+    if (!newData.incomeSources) newData.incomeSources = [];
+    const idx = newData.incomeSources.findIndex(s => s.id === source.id);
+    if (idx !== -1) {
+      newData.incomeSources[idx] = source;
+    } else {
+      newData.incomeSources.push(source);
+    }
+    // Recalculate total income from sources
+    newData.income = newData.incomeSources.reduce((sum, s) => sum + s.amount, 0);
+    persistData(newData);
+    setShowIncomeSourceForm(false);
+    setEditingIncomeSource(null);
+  };
+
+  const handleDeleteIncomeSource = (id) => {
+    const newData = { ...data };
+    newData.incomeSources = (newData.incomeSources || []).filter(s => s.id !== id);
+    newData.income = newData.incomeSources.reduce((sum, s) => sum + s.amount, 0);
+    persistData(newData);
+  };
+
   if (!data) return <div>Loading...</div>;
 
   const calculations = calculate503020(data.income, data.transactions, data.creditCards, data.subscriptions, selectedMonth);
@@ -204,7 +235,9 @@ function App() {
           calculations={calculations} 
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
-          onAddClick={() => { setEditingTransaction(null); setShowTransactionForm(true); }} 
+          onAddClick={() => { setEditingTransaction(null); setShowTransactionForm(true); }}
+          onIncomeClick={() => setCurrentView('income')}
+          onExpensesClick={() => setCurrentView('history')}
         />
       )}
       
@@ -258,26 +291,66 @@ function App() {
         />
       )}
 
+      {currentView === 'liquidity' && (
+        <Liquidity data={data} calculations={calculations} />
+      )}
+
+      {currentView === 'income' && (
+        <IncomeManager
+          incomeSources={data.incomeSources || []}
+          onEdit={(source) => { setEditingIncomeSource(source); setShowIncomeSourceForm(true); }}
+          onDelete={handleDeleteIncomeSource}
+          onBack={() => setCurrentView('dashboard')}
+        />
+      )}
+
+      {/* ── Global FAB — siempre fijo, acción según vista ─────── */}
+      {currentView === 'dashboard' && (
+        <button className="fab" onClick={() => { setEditingTransaction(null); setShowTransactionForm(true); }} aria-label="Agregar transacción">
+          <Plus size={22} />
+        </button>
+      )}
+      {currentView === 'cards' && !viewingCard && (
+        <button className="fab" onClick={() => { setEditingCard(null); setShowCardForm(true); }} aria-label="Agregar tarjeta">
+          <Plus size={22} />
+        </button>
+      )}
+      {currentView === 'subscriptions' && (
+        <button className="fab" onClick={() => { setEditingSubscription(null); setShowSubscriptionForm(true); }} aria-label="Agregar suscripción">
+          <Plus size={22} />
+        </button>
+      )}
+      {currentView === 'goals' && (
+        <button className="fab" onClick={() => { setEditingGoal(null); setIsFundingGoal(false); setShowGoalForm(true); }} aria-label="Agregar meta">
+          <Plus size={22} />
+        </button>
+      )}
+      {currentView === 'income' && (
+        <button className="fab" onClick={() => { setEditingIncomeSource(null); setShowIncomeSourceForm(true); }} aria-label="Agregar ingreso">
+          <Plus size={22} />
+        </button>
+      )}
+
       {/* Bottom Navigation */}
       <nav className="bottom-nav">
         <div className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`} onClick={() => { setCurrentView('dashboard'); setViewingCardId(null); }}>
-          <PieChart size={24} />
+          <PieChart size={22} />
           <span>Inicio</span>
         </div>
         <div className={`nav-item ${currentView === 'cards' ? 'active' : ''}`} onClick={() => { setCurrentView('cards'); setViewingCardId(null); }}>
-          <CreditCard size={24} />
+          <CreditCard size={22} />
           <span>Tarjetas</span>
         </div>
-        <div className={`nav-item ${currentView === 'subscriptions' ? 'active' : ''}`} onClick={() => { setCurrentView('subscriptions'); setViewingCardId(null); }}>
-          <RefreshCw size={24} />
-          <span>Fijos</span>
+        <div className={`nav-item ${currentView === 'liquidity' ? 'active' : ''}`} onClick={() => { setCurrentView('liquidity'); setViewingCardId(null); }}>
+          <BarChart2 size={22} />
+          <span>Liquidez</span>
         </div>
         <div className={`nav-item ${currentView === 'goals' ? 'active' : ''}`} onClick={() => { setCurrentView('goals'); setViewingCardId(null); }}>
-          <Target size={24} />
+          <Target size={22} />
           <span>Metas</span>
         </div>
         <div className={`nav-item ${currentView === 'history' ? 'active' : ''}`} onClick={() => { setCurrentView('history'); setViewingCardId(null); }}>
-          <Clock size={24} />
+          <Clock size={22} />
           <span>Historial</span>
         </div>
       </nav>
@@ -321,6 +394,13 @@ function App() {
           isFunding={isFundingGoal}
           onClose={() => { setShowGoalForm(false); setEditingGoal(null); setIsFundingGoal(false); }} 
           onSave={handleSaveGoal}
+        />
+      )}
+      {showIncomeSourceForm && (
+        <IncomeSourceForm
+          source={editingIncomeSource}
+          onSave={handleSaveIncomeSource}
+          onClose={() => { setShowIncomeSourceForm(false); setEditingIncomeSource(null); }}
         />
       )}
     </div>

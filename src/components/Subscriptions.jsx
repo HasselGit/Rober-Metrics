@@ -43,9 +43,6 @@ const Subscriptions = ({ subscriptions, onAdd, onEdit, onDelete }) => {
           </h2>
           <h1 style={{ fontSize: '2.5rem' }}>{formatCurrency(totalMonthly)}</h1>
         </div>
-        <button className="fab" onClick={onAdd} aria-label="Agregar Gasto Fijo">
-          <Plus size={24} />
-        </button>
       </header>
 
       {esenciales.length > 0 && (
