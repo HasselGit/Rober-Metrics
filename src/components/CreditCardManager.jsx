@@ -1,14 +1,8 @@
 import React from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import highcharts3d from 'highcharts/highcharts-3d';
 import { CreditCard, Edit2, Trash2, Plus } from 'lucide-react';
 import { formatCurrency, calculateCreditCardAmortization } from '../utils/financeCalculator';
-
-if (typeof Highcharts === 'object' && !Highcharts.is3dInit) {
-    highcharts3d(Highcharts);
-    Highcharts.is3dInit = true;
-}
 
 const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails }) => {
   const projection = calculateCreditCardAmortization(creditCards);

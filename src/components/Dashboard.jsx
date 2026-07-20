@@ -1,14 +1,8 @@
 import React from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import highcharts3d from 'highcharts/highcharts-3d';
 import { formatCurrency } from '../utils/financeCalculator';
 import { Plus, Activity, TrendingUp } from 'lucide-react';
-
-if (typeof Highcharts === 'object' && !Highcharts.is3dInit) {
-    highcharts3d(Highcharts);
-    Highcharts.is3dInit = true;
-}
 
 const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onAddClick }) => {
   const { expenses, ideal, percentages } = calculations;
