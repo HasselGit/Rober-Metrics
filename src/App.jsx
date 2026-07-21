@@ -462,24 +462,7 @@ function App() {
           <Plus size={22} />
         </button>
       )}
-      {currentView === 'history' && (
-        <button className="fab" onClick={() => {
-          if (historyTab === 'variables') {
-            setEditingTransaction(null);
-            setShowTransactionForm(true);
-          } else {
-            setEditingTransaction({
-              type: 'subscription',
-              description: '',
-              amount: '',
-              category: 'esenciales'
-            });
-            setShowTransactionForm(true);
-          }
-        }} aria-label="Agregar">
-          <Plus size={22} />
-        </button>
-      )}
+
       {currentView === 'goals' && (
         <button className="fab" onClick={() => { setEditingGoal(null); setIsFundingGoal(false); setShowGoalForm(true); }} aria-label="Agregar meta">
           <Plus size={22} />
