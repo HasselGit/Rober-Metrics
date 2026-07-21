@@ -1,30 +1,33 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar } from 'lucide-react';
-import { formatCurrency } from '../utils/financeCalculator';
+import { ArrowLeft, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar, Plus } from 'lucide-react';
+import { formatCurrency, getMonthsDifference, getFutureMonth } from '../utils/financeCalculator';
 
-const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase }) => {
+const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase, onAddPurchase, selectedMonth }) => {
   // Use state to track selected month offset (0 = current month, 1 = next month, etc.)
   const [monthOffset, setMonthOffset] = useState(0);
 
-  const getTargetDate = (offset) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + offset);
-    return d;
-  };
-
-  const targetDate = getTargetDate(monthOffset);
+  const targetMonthStr = getFutureMonth(selectedMonth, monthOffset);
+  const [year, month] = targetMonthStr.split('-').map(Number);
+  const targetDate = new Date(year, month - 1, 1);
   const monthName = targetDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
   // Calculate purchases that fall into this month
   const activePurchases = card.purchases.filter(p => {
-    // If a purchase has remainingMonths >= offset + 1, it means it has an installment this month
-    // Because offset 0 is current month. 
-    // Example: remaining=3. offset=0 (true), offset=1 (true), offset=2 (true), offset=3 (false).
-    return p.remainingMonths > monthOffset;
+    const purchaseStartMonth = p.startMonth || '2026-07';
+    const diff = getMonthsDifference(targetMonthStr, purchaseStartMonth);
+    return diff >= 0 && diff < p.installments;
   });
 
   const totalThisMonth = activePurchases.reduce((acc, p) => acc + p.amountPerMonth, 0);
-  const totalDebt = card.purchases.reduce((acc, p) => acc + (p.amountPerMonth * p.remainingMonths), 0);
+
+  const totalDebt = card.purchases.reduce((acc, p) => {
+    const purchaseStartMonth = p.startMonth || '2026-07';
+    const diff = getMonthsDifference(selectedMonth, purchaseStartMonth);
+    const installmentsPaid = Math.max(0, diff);
+    const remaining = Math.max(0, p.installments - installmentsPaid);
+    return acc + (p.amountPerMonth * remaining);
+  }, 0);
+
 
   return (
     <div className="container" style={{ paddingBottom: '6rem' }}>
@@ -66,8 +69,18 @@ const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase }) =>
         <p className="text-muted" style={{ fontSize: '0.75rem' }}>Deuda Total Acumulada: {formatCurrency(totalDebt)}</p>
       </div>
 
-      {/* Ticket/List */}
-      <h3 className="mb-3" style={{ fontSize: '1rem', color: 'var(--on-surface-variant)' }}>Detalle de Consumos</h3>
+      <div className="flex-between mb-3">
+        <h3 style={{ fontSize: '1rem', color: 'var(--on-surface-variant)', margin: 0 }}>Detalle de Consumos</h3>
+        {monthOffset === 0 && (
+          <button 
+            onClick={() => onAddPurchase(card.id)}
+            className="btn btn-primary"
+            style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', width: 'auto' }}
+          >
+            <Plus size={14} /> Agregar Consumo
+          </button>
+        )}
+      </div>
       
       {activePurchases.length === 0 ? (
         <div className="glass-panel text-center text-muted" style={{ padding: '2rem' }}>
@@ -76,7 +89,9 @@ const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase }) =>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {activePurchases.map(p => {
-            const currentInstallment = p.currentInstallment + monthOffset;
+            const purchaseStartMonth = p.startMonth || '2026-07';
+            const diff = getMonthsDifference(targetMonthStr, purchaseStartMonth);
+            const currentInstallment = diff + 1;
             
             return (
               <div key={p.id} className="glass-panel" style={{ padding: '1rem' }}>

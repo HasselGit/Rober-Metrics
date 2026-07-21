@@ -54,6 +54,45 @@ function App() {
     saveData(newData);
   };
 
+  // --- Helper to get month-specific income sources ---
+  const getMonthlyIncomeData = (monthStr) => {
+    if (!data || !data.monthlyIncomes) {
+      return {
+        sources: [
+          { id: 'is-1', name: 'Sueldo', amount: 1000000 },
+          { id: 'is-2', name: 'Sobresueldo', amount: 100000 },
+          { id: 'is-3', name: 'Velasco', amount: 100000 },
+        ],
+        total: 1200000
+      };
+    }
+    
+    // 1. Specific month exists
+    if (data.monthlyIncomes[monthStr] && data.monthlyIncomes[monthStr].length > 0) {
+      const sources = data.monthlyIncomes[monthStr];
+      const total = sources.reduce((sum, s) => sum + s.amount, 0);
+      return { sources, total };
+    }
+
+    // 2. Continuity rule: find the most recent chronological month
+    const months = Object.keys(data.monthlyIncomes).sort();
+    const pastMonths = months.filter(m => m < monthStr);
+    if (pastMonths.length > 0) {
+      const lastMonth = pastMonths[pastMonths.length - 1];
+      const sources = data.monthlyIncomes[lastMonth];
+      const total = sources.reduce((sum, s) => sum + s.amount, 0);
+      return { sources, total };
+    }
+
+    // 3. Fallback
+    const defaultSources = [
+      { id: 'is-1', name: 'Sueldo', amount: 1000000 },
+      { id: 'is-2', name: 'Sobresueldo', amount: 100000 },
+      { id: 'is-3', name: 'Velasco', amount: 100000 },
+    ];
+    return { sources: defaultSources, total: 1200000 };
+  };
+
   // --- Transactions ---
   const handleSaveTransaction = (transaction) => {
     const newData = { ...data };
@@ -62,13 +101,34 @@ function App() {
       const index = newData.transactions.findIndex(t => t.id === transaction.id);
       if (index !== -1) {
         if (transaction.type === 'income') {
-          newData.income = newData.income - editingTransaction.amount + transaction.amount;
+          const monthStr = transaction.date.slice(0, 7);
+          if (!newData.monthlyIncomes) newData.monthlyIncomes = {};
+          if (newData.monthlyIncomes[monthStr]) {
+            const idx = newData.monthlyIncomes[monthStr].findIndex(s => s.id === transaction.id);
+            if (idx !== -1) {
+              newData.monthlyIncomes[monthStr][idx] = {
+                id: transaction.id,
+                name: transaction.description,
+                amount: transaction.amount
+              };
+            }
+          }
         }
         newData.transactions[index] = transaction;
       }
     } else {
       if (transaction.type === 'income') {
-        newData.income += transaction.amount;
+        const monthStr = transaction.date.slice(0, 7);
+        if (!newData.monthlyIncomes) newData.monthlyIncomes = {};
+        if (!newData.monthlyIncomes[monthStr]) {
+          const { sources } = getMonthlyIncomeData(monthStr);
+          newData.monthlyIncomes[monthStr] = sources.map(s => ({ ...s }));
+        }
+        newData.monthlyIncomes[monthStr].push({
+          id: transaction.id,
+          name: transaction.description,
+          amount: transaction.amount
+        });
       } else if (transaction.type === 'credit_card') {
         const card = newData.creditCards.find(c => c.id === transaction.cardId);
         if (card) {
@@ -79,7 +139,8 @@ function App() {
             installments: transaction.installments,
             currentInstallment: 1,
             amountPerMonth: transaction.amount / transaction.installments,
-            remainingMonths: transaction.installments
+            remainingMonths: transaction.installments,
+            startMonth: transaction.date.slice(0, 7)
           });
         }
       } else {
@@ -96,7 +157,10 @@ function App() {
     const newData = { ...data };
     const transaction = newData.transactions.find(t => t.id === id);
     if (transaction && transaction.type === 'income') {
-      newData.income -= transaction.amount;
+      const monthStr = transaction.date.slice(0, 7);
+      if (newData.monthlyIncomes && newData.monthlyIncomes[monthStr]) {
+        newData.monthlyIncomes[monthStr] = newData.monthlyIncomes[monthStr].filter(s => s.id !== id);
+      }
     }
     newData.transactions = newData.transactions.filter(t => t.id !== id);
     persistData(newData);
@@ -130,6 +194,11 @@ function App() {
       const index = card.purchases.findIndex(p => p.id === purchase.id);
       if (index !== -1) {
         card.purchases[index] = purchase;
+      } else {
+        card.purchases.push({
+          ...purchase,
+          startMonth: purchase.startMonth || selectedMonth
+        });
       }
     }
     persistData(newData);
@@ -191,15 +260,21 @@ function App() {
   // --- Income Sources ---
   const handleSaveIncomeSource = (source) => {
     const newData = { ...data };
-    if (!newData.incomeSources) newData.incomeSources = [];
-    const idx = newData.incomeSources.findIndex(s => s.id === source.id);
-    if (idx !== -1) {
-      newData.incomeSources[idx] = source;
-    } else {
-      newData.incomeSources.push(source);
+    if (!newData.monthlyIncomes) newData.monthlyIncomes = {};
+    
+    if (!newData.monthlyIncomes[selectedMonth]) {
+      const { sources } = getMonthlyIncomeData(selectedMonth);
+      newData.monthlyIncomes[selectedMonth] = sources.map(s => ({ ...s }));
     }
-    // Recalculate total income from sources
-    newData.income = newData.incomeSources.reduce((sum, s) => sum + s.amount, 0);
+    
+    const sources = newData.monthlyIncomes[selectedMonth];
+    const idx = sources.findIndex(s => s.id === source.id);
+    if (idx !== -1) {
+      sources[idx] = source;
+    } else {
+      sources.push(source);
+    }
+    
     persistData(newData);
     setShowIncomeSourceForm(false);
     setEditingIncomeSource(null);
@@ -207,17 +282,30 @@ function App() {
 
   const handleDeleteIncomeSource = (id) => {
     const newData = { ...data };
-    newData.incomeSources = (newData.incomeSources || []).filter(s => s.id !== id);
-    newData.income = newData.incomeSources.reduce((sum, s) => sum + s.amount, 0);
+    if (!newData.monthlyIncomes) newData.monthlyIncomes = {};
+    
+    if (!newData.monthlyIncomes[selectedMonth]) {
+      const { sources } = getMonthlyIncomeData(selectedMonth);
+      newData.monthlyIncomes[selectedMonth] = sources.map(s => ({ ...s }));
+    }
+    
+    newData.monthlyIncomes[selectedMonth] = newData.monthlyIncomes[selectedMonth].filter(s => s.id !== id);
     persistData(newData);
   };
 
   if (!data) return <div>Loading...</div>;
 
-  const calculations = calculate503020(data.income, data.transactions, data.creditCards, data.subscriptions, selectedMonth);
+  const { sources: activeIncomeSources, total: activeIncomeTotal } = getMonthlyIncomeData(selectedMonth);
+  const calculations = calculate503020(activeIncomeTotal, data.transactions, data.creditCards, data.subscriptions, selectedMonth);
+
+  const enrichedData = {
+    ...data,
+    income: activeIncomeTotal,
+    incomeSources: activeIncomeSources
+  };
 
   // Derive the active card for details view
-  const viewingCard = viewingCardId ? data.creditCards.find(c => c.id === viewingCardId) : null;
+  const viewingCard = viewingCardId ? enrichedData.creditCards.find(c => c.id === viewingCardId) : null;
 
   return (
     <div>
@@ -231,7 +319,7 @@ function App() {
 
       {currentView === 'dashboard' && (
         <Dashboard 
-          data={data} 
+          data={enrichedData} 
           calculations={calculations} 
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
@@ -243,11 +331,12 @@ function App() {
       
       {currentView === 'cards' && !viewingCard && (
         <CreditCardManager 
-          creditCards={data.creditCards} 
+          creditCards={enrichedData.creditCards} 
           onAdd={() => { setEditingCard(null); setShowCardForm(true); }}
           onEdit={(cc) => { setEditingCard(cc); setShowCardForm(true); }}
           onDelete={handleDeleteCard}
           onViewDetails={(id) => setViewingCardId(id)}
+          selectedMonth={selectedMonth}
         />
       )}
 
@@ -261,12 +350,18 @@ function App() {
             setShowPurchaseForm(true);
           }}
           onDeletePurchase={handleDeletePurchase}
+          onAddPurchase={(cardId) => {
+            setEditingPurchaseCardId(cardId);
+            setEditingPurchase(null);
+            setShowPurchaseForm(true);
+          }}
+          selectedMonth={selectedMonth}
         />
       )}
 
       {currentView === 'history' && (
         <History 
-          transactions={data.transactions} 
+          transactions={enrichedData.transactions} 
           onEdit={(t) => { setEditingTransaction(t); setShowTransactionForm(true); }}
           onDelete={handleDeleteTransaction}
         />
@@ -274,7 +369,7 @@ function App() {
 
       {currentView === 'subscriptions' && (
         <Subscriptions 
-          subscriptions={data.subscriptions || []} 
+          subscriptions={enrichedData.subscriptions || []} 
           onAdd={() => { setEditingSubscription(null); setShowSubscriptionForm(true); }}
           onEdit={(sub) => { setEditingSubscription(sub); setShowSubscriptionForm(true); }}
           onDelete={handleDeleteSubscription}
@@ -283,7 +378,7 @@ function App() {
 
       {currentView === 'goals' && (
         <Goals 
-          goals={data.goals || []} 
+          goals={enrichedData.goals || []} 
           onAdd={() => { setEditingGoal(null); setIsFundingGoal(false); setShowGoalForm(true); }}
           onEdit={(goal) => { setEditingGoal(goal); setIsFundingGoal(false); setShowGoalForm(true); }}
           onDelete={handleDeleteGoal}
@@ -292,12 +387,12 @@ function App() {
       )}
 
       {currentView === 'liquidity' && (
-        <Liquidity data={data} calculations={calculations} />
+        <Liquidity data={enrichedData} calculations={calculations} />
       )}
 
       {currentView === 'income' && (
         <IncomeManager
-          incomeSources={data.incomeSources || []}
+          incomeSources={enrichedData.incomeSources || []}
           onEdit={(source) => { setEditingIncomeSource(source); setShowIncomeSourceForm(true); }}
           onDelete={handleDeleteIncomeSource}
           onBack={() => setCurrentView('dashboard')}

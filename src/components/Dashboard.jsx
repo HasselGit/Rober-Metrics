@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Highcharts from 'highcharts';
 import { HighchartsReact } from 'highcharts-react-official';
-import { formatCurrency } from '../utils/financeCalculator';
+import { formatCurrency, getMonthsDifference } from '../utils/financeCalculator';
 import { Plus, Activity, TrendingUp, TrendingDown, Wallet, X, RefreshCw, CreditCard, Calendar } from 'lucide-react';
 
 // Colores fijos por categoría — usados en donut Y en tabla
@@ -210,14 +210,12 @@ const CAT = {
     // 3. Cuotas de Tarjeta (Solo para No Esenciales)
     const cards = [];
     if (selectedCat === 'noEsenciales') {
-      const targetDate = new Date(selectedMonth + '-01');
-      const today = new Date();
-      const monthsDiff = (targetDate.getFullYear() - today.getFullYear()) * 12 + (targetDate.getMonth() - today.getMonth());
-
       (data.creditCards || []).forEach(cc => {
         cc.purchases.forEach(p => {
-          if (monthsDiff >= 0 && monthsDiff < p.remainingMonths) {
-            const currentInst = p.installments - p.remainingMonths + 1 + monthsDiff;
+          const purchaseStartMonth = p.startMonth || '2026-07';
+          const diff = getMonthsDifference(selectedMonth, purchaseStartMonth);
+          if (diff >= 0 && diff < p.installments) {
+            const currentInst = diff + 1;
             cards.push({
               id: p.id,
               cardName: cc.name,

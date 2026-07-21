@@ -4,8 +4,9 @@ import { HighchartsReact } from 'highcharts-react-official';
 import { CreditCard, Edit2, Trash2, Plus } from 'lucide-react';
 import { formatCurrency, calculateCreditCardAmortization } from '../utils/financeCalculator';
 
-const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails }) => {
-  const projection = calculateCreditCardAmortization(creditCards);
+const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails, selectedMonth }) => {
+  const projection = calculateCreditCardAmortization(creditCards, selectedMonth);
+
 
   const barOptions = {
     chart: {

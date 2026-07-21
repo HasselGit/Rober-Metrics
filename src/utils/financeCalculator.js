@@ -1,3 +1,17 @@
+// Helper to calculate difference in months between two YYYY-MM strings
+export const getMonthsDifference = (dateStrA, dateStrB) => {
+  const [yearA, monthA] = dateStrA.split('-').map(Number);
+  const [yearB, monthB] = dateStrB.split('-').map(Number);
+  return (yearA - yearB) * 12 + (monthA - monthB);
+};
+
+// Helper to get a future YYYY-MM month string with an offset
+export const getFutureMonth = (startMonthStr, offset) => {
+  const [year, month] = startMonthStr.split('-').map(Number);
+  const d = new Date(year, month - 1 + offset, 1);
+  return d.toISOString().slice(0, 7);
+};
+
 export const calculate503020 = (income, transactions, creditCards, subscriptions = [], targetMonthStr) => {
   // targetMonthStr is in format "YYYY-MM"
   const expenses = {
@@ -19,13 +33,12 @@ export const calculate503020 = (income, transactions, creditCards, subscriptions
 
   // 2. Add credit card installments that fall into targetMonth
   let ccMonthlyTotal = 0;
-  const targetDate = new Date(targetMonthStr + '-01');
-  const today = new Date();
-  const monthsDiff = (targetDate.getFullYear() - today.getFullYear()) * 12 + (targetDate.getMonth() - today.getMonth());
 
   creditCards.forEach(cc => {
     cc.purchases.forEach(p => {
-      if (monthsDiff >= 0 && monthsDiff < p.remainingMonths) {
+      const purchaseStartMonth = p.startMonth || '2026-07';
+      const diff = getMonthsDifference(targetMonthStr, purchaseStartMonth);
+      if (diff >= 0 && diff < p.installments) {
         ccMonthlyTotal += p.amountPerMonth;
       }
     });
@@ -49,13 +62,14 @@ export const calculate503020 = (income, transactions, creditCards, subscriptions
 
   // Calculate percentages used
   const percentages = {
-    esenciales: (expenses.esenciales / income) * 100,
-    'no-esenciales': (expenses['no-esenciales'] / income) * 100,
-    ahorro: (expenses.ahorro / income) * 100
+    esenciales: income > 0 ? (expenses.esenciales / income) * 100 : 0,
+    'no-esenciales': income > 0 ? (expenses['no-esenciales'] / income) * 100 : 0,
+    ahorro: income > 0 ? (expenses.ahorro / income) * 100 : 0
   };
 
   // 4. Generate Insights (Burn Rate)
   const insights = [];
+  const today = new Date();
   const currentMonthStr = today.toISOString().slice(0, 7);
   
   if (targetMonthStr === currentMonthStr) {
@@ -81,18 +95,19 @@ export const calculate503020 = (income, transactions, creditCards, subscriptions
   return { expenses, ideal, percentages, ccMonthlyTotal, insights };
 };
 
-export const calculateCreditCardAmortization = (creditCards) => {
-  // Project debt over the next 12 months
+export const calculateCreditCardAmortization = (creditCards, startMonthStr = '2026-07') => {
+  // Project debt over the next 12 months starting from startMonthStr
   const projection = Array(12).fill(0);
   
   creditCards.forEach(cc => {
     cc.purchases.forEach(p => {
-      let remaining = p.remainingMonths;
-      let monthIndex = 0;
-      while (remaining > 0 && monthIndex < 12) {
-        projection[monthIndex] += p.amountPerMonth;
-        remaining--;
-        monthIndex++;
+      const purchaseStartMonth = p.startMonth || '2026-07';
+      for (let i = 0; i < 12; i++) {
+        const targetMonth = getFutureMonth(startMonthStr, i);
+        const diff = getMonthsDifference(targetMonth, purchaseStartMonth);
+        if (diff >= 0 && diff < p.installments) {
+          projection[i] += p.amountPerMonth;
+        }
       }
     });
   });
