@@ -350,26 +350,6 @@ const CAT = {
       })()}
 
 
-      {/* ── Ahorro Acumulado ────────────────────────────────────── */}
-      <div className="glass-card mb-4" style={{ padding: '1.25rem 1.25rem 0.75rem' }}>
-        <div className="flex-between" style={{ marginBottom: '0.25rem' }}>
-          <p style={{ fontSize: '0.8rem', color: 'var(--on-surface-variant)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-            <TrendingUp size={14} color="var(--primary)" /> Ahorro Acumulado Anual
-          </p>
-          <span style={{ fontSize: '0.7rem', color: 'rgba(208,218,240,0.3)' }}>últimos 6 meses</span>
-        </div>
-        <h2 style={{ fontSize: '1.9rem', color: 'var(--gold)', margin: '0.1rem 0 0' }}>
-          {formatCurrency(areaDataPoints[areaDataPoints.length - 1])}
-        </h2>
-        <div style={{ height: '190px', marginLeft: '-1.25rem', marginRight: '-1.25rem', marginBottom: '-0.25rem' }}>
-          <HighchartsReact
-            highcharts={Highcharts}
-            options={areaOptions}
-            containerProps={{ style: { height: '100%', width: '100%' } }}
-          />
-        </div>
-      </div>
-
       {/* ── Distribución 50/30/20 ───────────────────────────────── */}
       <div className="glass-card mb-4" ref={distCardRef}>
         <p style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--on-surface-variant)', marginBottom: '1rem' }}>
@@ -423,6 +403,26 @@ const CAT = {
             Toca la fila de nuevo para deseleccionar
           </p>
         )}
+      </div>
+
+      {/* ── Ahorro Acumulado ────────────────────────────────────── */}
+      <div className="glass-card mb-4" style={{ padding: '1.25rem 1.25rem 0.75rem' }}>
+        <div className="flex-between" style={{ marginBottom: '0.25rem' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--on-surface-variant)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+            <TrendingUp size={14} color="var(--primary)" /> Ahorro Acumulado Anual
+          </p>
+          <span style={{ fontSize: '0.7rem', color: 'rgba(208,218,240,0.3)' }}>últimos 6 meses</span>
+        </div>
+        <h2 style={{ fontSize: '1.9rem', color: 'var(--gold)', margin: '0.1rem 0 0' }}>
+          {formatCurrency(areaDataPoints[areaDataPoints.length - 1])}
+        </h2>
+        <div style={{ height: '190px', marginLeft: '-1.25rem', marginRight: '-1.25rem', marginBottom: '-0.25rem' }}>
+          <HighchartsReact
+            highcharts={Highcharts}
+            options={areaOptions}
+            containerProps={{ style: { height: '100%', width: '100%' } }}
+          />
+        </div>
       </div>
 
 
