@@ -21,6 +21,7 @@ function App() {
   const [data, setData] = useState(null);
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [historyTab, setHistoryTab] = useState('variables'); // 'variables' or 'fijos'
 
   // Form States
   const [showTransactionForm, setShowTransactionForm] = useState(false);
@@ -360,20 +361,63 @@ function App() {
       )}
 
       {currentView === 'history' && (
-        <History 
-          transactions={enrichedData.transactions} 
-          onEdit={(t) => { setEditingTransaction(t); setShowTransactionForm(true); }}
-          onDelete={handleDeleteTransaction}
-        />
-      )}
+        <>
+          <div className="container" style={{ paddingTop: '1.25rem', paddingBottom: '0.25rem' }}>
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button 
+                onClick={() => setHistoryTab('variables')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  borderRadius: '0.35rem',
+                  border: 'none',
+                  background: historyTab === 'variables' ? 'var(--primary)' : 'none',
+                  color: historyTab === 'variables' ? '#000' : 'var(--on-surface-variant)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: historyTab === 'variables' ? '0 2px 6px rgba(0, 194, 212, 0.25)' : 'none'
+                }}
+              >
+                Gastos Variables
+              </button>
+              <button 
+                onClick={() => setHistoryTab('fijos')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  borderRadius: '0.35rem',
+                  border: 'none',
+                  background: historyTab === 'fijos' ? 'var(--primary)' : 'none',
+                  color: historyTab === 'fijos' ? '#000' : 'var(--on-surface-variant)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: historyTab === 'fijos' ? '0 2px 6px rgba(0, 194, 212, 0.25)' : 'none'
+                }}
+              >
+                Fijos / Suscripciones
+              </button>
+            </div>
+          </div>
 
-      {currentView === 'subscriptions' && (
-        <Subscriptions 
-          subscriptions={enrichedData.subscriptions || []} 
-          onAdd={() => { setEditingSubscription(null); setShowSubscriptionForm(true); }}
-          onEdit={(sub) => { setEditingSubscription(sub); setShowSubscriptionForm(true); }}
-          onDelete={handleDeleteSubscription}
-        />
+          {historyTab === 'variables' ? (
+            <History 
+              transactions={enrichedData.transactions} 
+              onEdit={(t) => { setEditingTransaction(t); setShowTransactionForm(true); }}
+              onDelete={handleDeleteTransaction}
+            />
+          ) : (
+            <Subscriptions 
+              subscriptions={enrichedData.subscriptions || []} 
+              onAdd={() => { setEditingSubscription(null); setShowSubscriptionForm(true); }}
+              onEdit={(sub) => { setEditingSubscription(sub); setShowSubscriptionForm(true); }}
+              onDelete={handleDeleteSubscription}
+            />
+          )}
+        </>
       )}
 
       {currentView === 'goals' && (
@@ -410,8 +454,16 @@ function App() {
           <Plus size={22} />
         </button>
       )}
-      {currentView === 'subscriptions' && (
-        <button className="fab" onClick={() => { setEditingSubscription(null); setShowSubscriptionForm(true); }} aria-label="Agregar suscripción">
+      {currentView === 'history' && (
+        <button className="fab" onClick={() => {
+          if (historyTab === 'variables') {
+            setEditingTransaction(null);
+            setShowTransactionForm(true);
+          } else {
+            setEditingSubscription(null);
+            setShowSubscriptionForm(true);
+          }
+        }} aria-label="Agregar">
           <Plus size={22} />
         </button>
       )}
