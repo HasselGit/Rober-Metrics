@@ -335,6 +335,16 @@ function App() {
           onAddClick={() => { setEditingTransaction(null); setShowTransactionForm(true); }}
           onIncomeClick={() => setCurrentView('income')}
           onExpensesClick={() => setCurrentView('history')}
+          onEditTransaction={(t) => { setEditingTransaction(t); setShowTransactionForm(true); }}
+          onDeleteTransaction={handleDeleteTransaction}
+          onEditSubscription={(sub) => { setEditingSubscription(sub); setShowSubscriptionForm(true); }}
+          onDeleteSubscription={handleDeleteSubscription}
+          onEditPurchase={(cardId, purchase) => {
+            setEditingPurchaseCardId(cardId);
+            setEditingPurchase(purchase);
+            setShowPurchaseForm(true);
+          }}
+          onDeletePurchase={handleDeletePurchase}
         />
       )}
       

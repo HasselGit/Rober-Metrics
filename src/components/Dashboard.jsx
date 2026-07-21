@@ -1,15 +1,28 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import { HighchartsReact } from 'highcharts-react-official';
 import { formatCurrency, getMonthsDifference } from '../utils/financeCalculator';
-import { Plus, Activity, TrendingUp, TrendingDown, Wallet, X, RefreshCw, CreditCard, Calendar } from 'lucide-react';
+import { Plus, Activity, TrendingUp, TrendingDown, Wallet, X, RefreshCw, CreditCard, Calendar, Edit2, Trash2 } from 'lucide-react';
 
 // Colores fijos por categoría — usados en donut Y en tabla
 const CAT = {
   esenciales:    { color: '#0ea5e9', label: 'Esenciales (50%)',    threshold: 50 },
   noEsenciales:  { color: '#6366f1', label: 'No Esenciales (30%)', threshold: 30 },
   ahorro:        { color: '#d4af37', label: 'Ahorro (20%)',         threshold: 0  },
-};const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onIncomeClick, onExpensesClick }) => {
+};const Dashboard = ({ 
+  data, 
+  calculations, 
+  selectedMonth, 
+  onMonthChange, 
+  onIncomeClick, 
+  onExpensesClick,
+  onEditTransaction,
+  onDeleteTransaction,
+  onEditSubscription,
+  onDeleteSubscription,
+  onEditPurchase,
+  onDeletePurchase
+}) => {
   const { expenses, ideal, percentages } = calculations;
 
   const distCardRef = useRef(null);
@@ -18,16 +31,19 @@ const CAT = {
   const [selectedCat, setSelectedCat] = useState(null);
 
   const toggleCat = (cat) => {
-    setSelectedCat(prev => {
-      const next = prev === cat ? null : cat;
-      if (next && distCardRef.current) {
-        setTimeout(() => {
-          distCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 120);
-      }
-      return next;
-    });
+    setSelectedCat(prev => (prev === cat ? null : cat));
   };
+
+  useEffect(() => {
+    if (selectedCat && distCardRef.current) {
+      const timer = setTimeout(() => {
+        if (distCardRef.current) {
+          distCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 120);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedCat]);
 
 
   // ── Acumulado: últimos 6 meses ──────────────────────────────────
@@ -218,6 +234,8 @@ const CAT = {
             const currentInst = diff + 1;
             cards.push({
               id: p.id,
+              cardId: cc.id,
+              purchase: p,
               cardName: cc.name,
               description: p.description,
               amount: p.amountPerMonth,
@@ -508,21 +526,32 @@ const CAT = {
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {details.txs.map(t => (
-                          <div key={t.id} className="flex-between" style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.03)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                              <div style={{ padding: '6px', borderRadius: '50%', background: `${CAT[selectedCat].color}12`, display: 'flex' }}>
-                                <Calendar size={14} color={CAT[selectedCat].color} />
+                          <div key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem 0.85rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.6rem', border: '1px solid rgba(255,255,255,0.04)' }}>
+                            <div className="flex-between">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ padding: '6px', borderRadius: '50%', background: `${CAT[selectedCat].color}12`, display: 'flex' }}>
+                                  <Calendar size={14} color={CAT[selectedCat].color} />
+                                </div>
+                                <div>
+                                  <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, color: 'var(--on-bg)' }}>{t.description}</p>
+                                  <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', margin: 0 }}>
+                                    {t.date.split('-').reverse().join('/')}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, color: 'var(--on-bg)' }}>{t.description}</p>
-                                <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', margin: 0 }}>
-                                  {t.date.split('-').reverse().join('/')}
-                                </p>
-                              </div>
+                              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: CAT[selectedCat].color }}>
+                                {formatCurrency(t.amount)}
+                              </span>
                             </div>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: CAT[selectedCat].color }}>
-                              {formatCurrency(t.amount)}
-                            </span>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
+                              <button onClick={() => { setSelectedCat(null); onEditTransaction(t); }} className="btn-ghost" style={{ padding: '2px 6px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', border: 'none', color: 'var(--on-surface-variant)' }}>
+                                <Edit2 size={12} /> Editar
+                              </button>
+                              <button onClick={() => { if(window.confirm('¿Seguro que quieres borrar este movimiento?')) { setSelectedCat(null); onDeleteTransaction(t.id); } }} className="btn-ghost" style={{ padding: '2px 6px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', border: 'none', color: 'var(--error)' }}>
+                                <Trash2 size={12} /> Borrar
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -537,19 +566,30 @@ const CAT = {
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {details.subs.map(s => (
-                          <div key={s.id} className="flex-between" style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.03)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                              <div style={{ padding: '6px', borderRadius: '50%', background: `${CAT[selectedCat].color}12`, display: 'flex' }}>
-                                <RefreshCw size={14} color={CAT[selectedCat].color} />
+                          <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem 0.85rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.6rem', border: '1px solid rgba(255,255,255,0.04)' }}>
+                            <div className="flex-between">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ padding: '6px', borderRadius: '50%', background: `${CAT[selectedCat].color}12`, display: 'flex' }}>
+                                  <RefreshCw size={14} color={CAT[selectedCat].color} />
+                                </div>
+                                <div>
+                                  <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, color: 'var(--on-bg)' }}>{s.name}</p>
+                                  <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', margin: 0 }}>Débito mensual automático</p>
+                                </div>
                               </div>
-                              <div>
-                                <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, color: 'var(--on-bg)' }}>{s.name}</p>
-                                <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', margin: 0 }}>Débito mensual automático</p>
-                              </div>
+                              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: CAT[selectedCat].color }}>
+                                {formatCurrency(s.amount)}
+                              </span>
                             </div>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: CAT[selectedCat].color }}>
-                              {formatCurrency(s.amount)}
-                            </span>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
+                              <button onClick={() => { setSelectedCat(null); onEditSubscription(s); }} className="btn-ghost" style={{ padding: '2px 6px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', border: 'none', color: 'var(--on-surface-variant)' }}>
+                                <Edit2 size={12} /> Editar
+                              </button>
+                              <button onClick={() => { if(window.confirm('¿Seguro que quieres borrar este gasto fijo?')) { setSelectedCat(null); onDeleteSubscription(s.id); } }} className="btn-ghost" style={{ padding: '2px 6px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', border: 'none', color: 'var(--error)' }}>
+                                <Trash2 size={12} /> Borrar
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -564,21 +604,32 @@ const CAT = {
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {details.cards.map(c => (
-                          <div key={c.id} className="flex-between" style={{ padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.03)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                              <div style={{ padding: '6px', borderRadius: '50%', background: `${c.color}15`, display: 'flex' }}>
-                                <CreditCard size={14} color={c.color} />
+                          <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem 0.85rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.6rem', border: '1px solid rgba(255,255,255,0.04)' }}>
+                            <div className="flex-between">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ padding: '6px', borderRadius: '50%', background: `${c.color}15`, display: 'flex' }}>
+                                  <CreditCard size={14} color={c.color} />
+                                </div>
+                                <div>
+                                  <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, color: 'var(--on-bg)' }}>{c.description}</p>
+                                  <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', margin: 0 }}>
+                                    {c.cardName} · <span style={{ color: c.color, fontWeight: 500 }}>{c.installmentInfo}</span>
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, color: 'var(--on-bg)' }}>{c.description}</p>
-                                <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', margin: 0 }}>
-                                  {c.cardName} · <span style={{ color: c.color, fontWeight: 500 }}>{c.installmentInfo}</span>
-                                </p>
-                              </div>
+                              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: CAT[selectedCat].color }}>
+                                {formatCurrency(c.amount)}
+                              </span>
                             </div>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: CAT[selectedCat].color }}>
-                              {formatCurrency(c.amount)}
-                            </span>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.4rem' }}>
+                              <button onClick={() => { setSelectedCat(null); onEditPurchase(c.cardId, c.purchase); }} className="btn-ghost" style={{ padding: '2px 6px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', border: 'none', color: 'var(--on-surface-variant)' }}>
+                                <Edit2 size={12} /> Editar
+                              </button>
+                              <button onClick={() => { if(window.confirm('¿Seguro que quieres borrar este gasto de tarjeta?')) { setSelectedCat(null); onDeletePurchase(c.cardId, c.id); } }} className="btn-ghost" style={{ padding: '2px 6px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', border: 'none', color: 'var(--error)' }}>
+                                <Trash2 size={12} /> Borrar
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
