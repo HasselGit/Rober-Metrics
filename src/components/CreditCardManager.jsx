@@ -12,32 +12,39 @@ const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails
       type: 'column',
       options3d: {
         enabled: true,
-        alpha: 15,
-        beta: 15,
+        alpha: 12,
+        beta: 12,
         depth: 50,
         viewDistance: 25
       },
       backgroundColor: 'transparent',
-      margin: [10, 0, 30, 0]
+      margin: [20, 20, 45, 55]
     },
+
     title: { text: null },
     credits: { enabled: false },
     legend: { enabled: false },
     xAxis: {
       categories: ['Mes 1', 'Mes 2', 'Mes 3', 'Mes 4', 'Mes 5', 'Mes 6', 'Mes 7', 'Mes 8', 'Mes 9', 'Mes 10', 'Mes 11', 'Mes 12'],
-      labels: { style: { color: '#bacbb8', fontFamily: 'Inter', fontSize: '10px' } },
-      lineColor: 'transparent',
-      gridLineColor: 'transparent',
-      tickWidth: 0
+      labels: { style: { color: 'rgba(208,218,240,0.5)', fontFamily: 'Inter', fontSize: '10px' } },
+      lineColor: 'rgba(0,194,212,0.12)',
+      tickColor: 'transparent',
+      gridLineColor: 'transparent'
     },
     yAxis: {
-      visible: false,
-      min: 0
+      visible: true,
+      gridLineColor: 'rgba(255,255,255,0.04)',
+      labels: {
+        formatter: function() { return '$' + (this.value / 1000).toFixed(0) + 'k'; },
+        style: { color: 'rgba(208,218,240,0.4)', fontSize: '10px' }
+      },
+      title: { text: null }
     },
     plotOptions: {
       column: {
         depth: 25,
-        color: '#ff4757',
+        color: '#6366f1',
+        borderRadius: 4,
         borderWidth: 0
       }
     },
@@ -46,8 +53,14 @@ const CreditCardManager = ({ creditCards, onAdd, onEdit, onDelete, onViewDetails
       data: projection
     }],
     tooltip: {
+      backgroundColor: 'rgba(8,13,26,0.95)',
+      borderColor: 'rgba(0,194,212,0.3)',
+      borderWidth: 1,
+      borderRadius: 12,
+      shadow: false,
+      style: { color: '#e8f0fe', fontFamily: 'Inter' },
       formatter: function() {
-        return `<b>${formatCurrency(this.y)}</b>`;
+        return `<b>${this.x}</b><br/><span style="color:#6366f1">● Cuota total:</span> <b>${formatCurrency(this.y)}</b>`;
       }
     }
   };
