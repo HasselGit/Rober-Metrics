@@ -146,11 +146,14 @@ function App() {
         }
       } else if (transaction.type === 'subscription') {
         if (!newData.subscriptions) newData.subscriptions = [];
+        const monthStr = transaction.date.slice(0, 7);
         newData.subscriptions.push({
           id: transaction.id || `sub-${Date.now()}`,
           name: transaction.description,
-          amount: transaction.amount,
-          category: transaction.category
+          category: transaction.category,
+          history: {
+            [monthStr]: transaction.amount
+          }
         });
       } else {
         newData.transactions.push(transaction);
@@ -228,11 +231,31 @@ function App() {
   // --- Subscriptions ---
   const handleSaveSubscription = (subscription) => {
     const newData = { ...data };
+    if (!newData.subscriptions) newData.subscriptions = [];
+    
     const index = newData.subscriptions.findIndex(s => s.id === subscription.id);
     if (index !== -1) {
-      newData.subscriptions[index] = subscription;
+      const existing = newData.subscriptions[index];
+      // Keep existing history, only update selectedMonth
+      const newHistory = { ...(existing.history || { "2026-07": existing.amount || 0 }) };
+      newHistory[selectedMonth] = subscription.amount;
+      
+      newData.subscriptions[index] = {
+        ...existing,
+        name: subscription.name,
+        category: subscription.category,
+        history: newHistory
+      };
     } else {
-      newData.subscriptions.push(subscription);
+      // New subscription starting from selectedMonth
+      newData.subscriptions.push({
+        id: subscription.id,
+        name: subscription.name,
+        category: subscription.category,
+        history: {
+          [selectedMonth]: subscription.amount
+        }
+      });
     }
     persistData(newData);
     setShowSubscriptionForm(false);
@@ -430,6 +453,7 @@ function App() {
           ) : (
             <Subscriptions 
               subscriptions={enrichedData.subscriptions || []} 
+              selectedMonth={selectedMonth}
               onAdd={() => { setEditingSubscription(null); setShowSubscriptionForm(true); }}
               onEdit={(sub) => { setEditingSubscription(sub); setShowSubscriptionForm(true); }}
               onDelete={handleDeleteSubscription}

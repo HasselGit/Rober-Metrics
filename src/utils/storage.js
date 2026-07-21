@@ -41,6 +41,18 @@ export const loadData = () => {
       };
     }
 
+    // Migration: ensure all subscriptions have history
+    if (data.subscriptions) {
+      data.subscriptions = data.subscriptions.map(sub => {
+        if (!sub.history) {
+          sub.history = {
+            '2026-07': sub.amount || 0
+          };
+        }
+        return sub;
+      });
+    }
+
     return data;
   } catch (err) {
     console.error('Error loading data from localStorage', err);

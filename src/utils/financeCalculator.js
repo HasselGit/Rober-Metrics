@@ -12,6 +12,25 @@ export const getFutureMonth = (startMonthStr, offset) => {
   return d.toISOString().slice(0, 7);
 };
 
+// Helper to get active amount of a subscription in a given target month
+export const getSubscriptionAmountForMonth = (sub, targetMonthStr) => {
+  if (!sub.history || Object.keys(sub.history).length === 0) {
+    return sub.amount || 0;
+  }
+  const months = Object.keys(sub.history).sort(); // Sort chronological, e.g. ["2026-07", "2026-08"]
+  const startMonth = months[0];
+  if (targetMonthStr < startMonth) {
+    return 0; // Not active yet
+  }
+  let activeAmount = 0;
+  for (const m of months) {
+    if (m <= targetMonthStr) {
+      activeAmount = sub.history[m];
+    }
+  }
+  return activeAmount;
+};
+
 export const calculate503020 = (income, transactions, creditCards, subscriptions = [], targetMonthStr) => {
   // targetMonthStr is in format "YYYY-MM"
   const expenses = {
@@ -46,10 +65,10 @@ export const calculate503020 = (income, transactions, creditCards, subscriptions
   
   expenses['no-esenciales'] += ccMonthlyTotal;
 
-  // 3. Add Subscriptions
+  // 3. Add Subscriptions using month-specific historical lookup
   subscriptions.forEach(sub => {
     if (expenses[sub.category] !== undefined) {
-      expenses[sub.category] += sub.amount;
+      expenses[sub.category] += getSubscriptionAmountForMonth(sub, targetMonthStr);
     }
   });
 

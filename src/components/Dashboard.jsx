@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import { HighchartsReact } from 'highcharts-react-official';
-import { formatCurrency, getMonthsDifference } from '../utils/financeCalculator';
+import { formatCurrency, getMonthsDifference, getSubscriptionAmountForMonth } from '../utils/financeCalculator';
 import { Plus, Activity, TrendingUp, TrendingDown, Wallet, X, RefreshCw, CreditCard, Calendar, Edit2, Trash2 } from 'lucide-react';
 
 // Colores fijos por categoría — usados en donut Y en tabla
@@ -219,9 +219,10 @@ const CAT = {
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // 2. Gastos Fijos (Suscripciones)
-    const subs = (data.subscriptions || []).filter(s => 
-      s.category === apiCatKey
-    );
+    const subs = (data.subscriptions || []).map(s => {
+      const amt = getSubscriptionAmountForMonth(s, selectedMonth);
+      return { ...s, amount: amt };
+    }).filter(s => s.category === apiCatKey && s.amount > 0);
 
     // 3. Cuotas de Tarjeta (Solo para No Esenciales)
     const cards = [];

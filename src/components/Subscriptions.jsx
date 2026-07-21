@@ -1,10 +1,15 @@
 import React from 'react';
 import { RefreshCw, TrendingDown, Edit2, Trash2, Plus } from 'lucide-react';
-import { formatCurrency } from '../utils/financeCalculator';
+import { formatCurrency, getSubscriptionAmountForMonth } from '../utils/financeCalculator';
 
-const Subscriptions = ({ subscriptions, onAdd, onEdit, onDelete }) => {
-  const esenciales = subscriptions.filter(s => s.category === 'esenciales');
-  const noEsenciales = subscriptions.filter(s => s.category === 'no-esenciales');
+const Subscriptions = ({ subscriptions, selectedMonth, onAdd, onEdit, onDelete }) => {
+  const activeSubs = subscriptions.map(s => {
+    const amt = getSubscriptionAmountForMonth(s, selectedMonth);
+    return { ...s, amount: amt };
+  }).filter(s => s.amount > 0);
+
+  const esenciales = activeSubs.filter(s => s.category === 'esenciales');
+  const noEsenciales = activeSubs.filter(s => s.category === 'no-esenciales');
 
   const totalEsenciales = esenciales.reduce((acc, sub) => acc + sub.amount, 0);
   const totalNoEsenciales = noEsenciales.reduce((acc, sub) => acc + sub.amount, 0);

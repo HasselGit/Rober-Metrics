@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import Highcharts from 'highcharts';
 import { HighchartsReact } from 'highcharts-react-official';
-import { formatCurrency, calculateCreditCardAmortization } from '../utils/financeCalculator';
+import { formatCurrency, calculateCreditCardAmortization, getSubscriptionAmountForMonth } from '../utils/financeCalculator';
 import { TrendingDown, TrendingUp, Wallet, Calendar } from 'lucide-react';
 
 const MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -16,7 +16,6 @@ const MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct'
  */
 const calcProjection = (data, months = 3) => {
   const income = data.income || 0;
-  const subscriptionsTotal = (data.subscriptions || []).reduce((s, sub) => s + sub.amount, 0);
 
   // Promedio mensual de gastos variables (últimos 3 meses reales)
   const today = new Date();
@@ -41,6 +40,13 @@ const calcProjection = (data, months = 3) => {
   return Array.from({ length: months }, (_, i) => {
     const monthDate = new Date(today.getFullYear(), today.getMonth() + i + 1, 1);
     const monthLabel = `${MONTH_NAMES[monthDate.getMonth()]} ${monthDate.getFullYear()}`;
+    const targetMonthStr = monthDate.toISOString().slice(0, 7);
+    
+    // Calculate subscription total active for this future month
+    const subscriptionsTotal = (data.subscriptions || []).reduce((sum, sub) => {
+      return sum + getSubscriptionAmountForMonth(sub, targetMonthStr);
+    }, 0);
+
     const ccCost = ccProjection[i] || 0;
     const totalExpenses = subscriptionsTotal + ccCost + variableAvg;
     const freeCash = income - totalExpenses;
