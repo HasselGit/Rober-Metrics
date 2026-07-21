@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Highcharts from 'highcharts';
 import { HighchartsReact } from 'highcharts-react-official';
 import { formatCurrency } from '../utils/financeCalculator';
@@ -12,10 +12,23 @@ const CAT = {
 };const Dashboard = ({ data, calculations, selectedMonth, onMonthChange, onIncomeClick, onExpensesClick }) => {
   const { expenses, ideal, percentages } = calculations;
 
+  const distCardRef = useRef(null);
+
   // Categoría seleccionada para animar el donut (null = ninguna)
   const [selectedCat, setSelectedCat] = useState(null);
 
-  const toggleCat = (cat) => setSelectedCat(prev => prev === cat ? null : cat);
+  const toggleCat = (cat) => {
+    setSelectedCat(prev => {
+      const next = prev === cat ? null : cat;
+      if (next && distCardRef.current) {
+        setTimeout(() => {
+          distCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+      }
+      return next;
+    });
+  };
+
 
   // ── Acumulado: últimos 6 meses ──────────────────────────────────
   const last6Months = Array.from({length: 6}, (_, i) => {
@@ -360,14 +373,14 @@ const CAT = {
       </div>
 
       {/* ── Distribución 50/30/20 ───────────────────────────────── */}
-      <div className="glass-card mb-4">
+      <div className="glass-card mb-4" ref={distCardRef}>
         <p style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--on-surface-variant)', marginBottom: '1rem' }}>
           Distribución 50 / 30 / 20
         </p>
 
-        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-          {/* Donut 3D — overflow:visible para que el slice no se corte */}
-          <div style={{ width: '140px', height: '155px', flexShrink: 0, position: 'relative', overflow: 'visible' }}>
+        {/* Donut 3D Centrado arriba — overflow:visible para que el slice no se corte */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', overflow: 'visible' }}>
+          <div style={{ width: '190px', height: '200px', flexShrink: 0, position: 'relative', overflow: 'visible' }}>
             <HighchartsReact
               highcharts={Highcharts}
               options={donutOptions}
@@ -378,33 +391,33 @@ const CAT = {
               transform: 'translate(-50%, -50%)',
               textAlign: 'center', pointerEvents: 'none'
             }}>
-              <Activity size={16} color="var(--primary)" />
+              <Activity size={18} color="var(--primary)" />
             </div>
           </div>
+        </div>
 
-          {/* Filas de progreso — clic anima el donut */}
-          <div style={{ flex: 1 }}>
-            <ProgressRow
-              catKey="esenciales"
-              pct={percentages.esenciales}
-              spent={expenses.esenciales}
-              limit={ideal.esenciales}
-            />
-            <ProgressRow
-              catKey="noEsenciales"
-              pct={percentages['no-esenciales']}
-              spent={expenses['no-esenciales']}
-              limit={ideal['no-esenciales']}
-            />
-            <ProgressRow
-              catKey="ahorro"
-              pct={percentages.ahorro}
-              spent={expenses.ahorro}
-              limit={ideal.ahorro}
-              labelKey="Invertido"
-              limitLabel="Meta"
-            />
-          </div>
+        {/* Filas de progreso abajo — clic anima el donut */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <ProgressRow
+            catKey="esenciales"
+            pct={percentages.esenciales}
+            spent={expenses.esenciales}
+            limit={ideal.esenciales}
+          />
+          <ProgressRow
+            catKey="noEsenciales"
+            pct={percentages['no-esenciales']}
+            spent={expenses['no-esenciales']}
+            limit={ideal['no-esenciales']}
+          />
+          <ProgressRow
+            catKey="ahorro"
+            pct={percentages.ahorro}
+            spent={expenses.ahorro}
+            limit={ideal.ahorro}
+            labelKey="Invertido"
+            limitLabel="Meta"
+          />
         </div>
 
         {selectedCat && (
@@ -413,6 +426,7 @@ const CAT = {
           </p>
         )}
       </div>
+
 
       {/* ── Inteligencia Financiera ─────────────────────────────── */}
       {calculations.insights && calculations.insights.length > 0 && (
