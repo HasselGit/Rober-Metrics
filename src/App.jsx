@@ -144,6 +144,14 @@ function App() {
             startMonth: transaction.date.slice(0, 7)
           });
         }
+      } else if (transaction.type === 'subscription') {
+        if (!newData.subscriptions) newData.subscriptions = [];
+        newData.subscriptions.push({
+          id: transaction.id || `sub-${Date.now()}`,
+          name: transaction.description,
+          amount: transaction.amount,
+          category: transaction.category
+        });
       } else {
         newData.transactions.push(transaction);
       }
@@ -460,8 +468,13 @@ function App() {
             setEditingTransaction(null);
             setShowTransactionForm(true);
           } else {
-            setEditingSubscription(null);
-            setShowSubscriptionForm(true);
+            setEditingTransaction({
+              type: 'subscription',
+              description: '',
+              amount: '',
+              category: 'esenciales'
+            });
+            setShowTransactionForm(true);
           }
         }} aria-label="Agregar">
           <Plus size={22} />

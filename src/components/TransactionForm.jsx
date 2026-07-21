@@ -48,6 +48,7 @@ const TransactionForm = ({ onClose, onSave, creditCards, initialData }) => {
             >
               <option value="expense">Gasto (Efectivo/Débito)</option>
               <option value="credit_card">Tarjeta de Crédito (Cuotas)</option>
+              <option value="subscription">Gasto Fijo / Suscripción (Recurrente)</option>
               <option value="income">Ingreso (Sueldo)</option>
               <option value="transfer">Ahorro / Inversión</option>
             </select>
@@ -93,7 +94,9 @@ const TransactionForm = ({ onClose, onSave, creditCards, initialData }) => {
               >
                 <option value="esenciales">Esenciales (50%) - Vivienda, Comida</option>
                 <option value="no-esenciales">No Esenciales (30%) - Gustos, Salidas</option>
-                <option value="ahorro">Ahorro (20%) - CEDEARs, MEP</option>
+                {formData.type !== 'subscription' && (
+                  <option value="ahorro">Ahorro (20%) - CEDEARs, MEP</option>
+                )}
               </select>
             </div>
           )}
