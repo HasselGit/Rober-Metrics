@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Edit2, Trash2, Calendar, Plus } from 'lucide-react';
-import { formatCurrency, getMonthsDifference, getFutureMonth } from '../utils/financeCalculator';
+import { ChevronLeft, ChevronRight, ArrowLeft, Plus, Edit2, Trash2, Calendar, RefreshCw } from 'lucide-react';
+import { formatCurrency, getMonthsDifference, getSubscriptionAmountForMonth } from '../utils/financeCalculator';
 
-const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase, onAddPurchase, selectedMonth }) => {
-  // Use state to track selected month offset (0 = current month, 1 = next month, etc.)
+const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase, onAddPurchase, selectedMonth, subscriptions = [] }) => {
   const [monthOffset, setMonthOffset] = useState(0);
 
-  const targetMonthStr = getFutureMonth(selectedMonth, monthOffset);
-  const [year, month] = targetMonthStr.split('-').map(Number);
-  const targetDate = new Date(year, month - 1, 1);
+  const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+  // Calculate target month string (selectedMonth + offset)
+  const [startYear, startMonth] = selectedMonth.split('-').map(Number);
+  const targetDate = new Date(startYear, startMonth - 1 + monthOffset, 1);
+  const targetMonthStr = targetDate.toISOString().slice(0, 7); // YYYY-MM
   const monthName = targetDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
   // Calculate purchases that fall into this month
@@ -18,7 +20,17 @@ const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase, onAd
     return diff >= 0 && diff < p.installments;
   });
 
-  const totalThisMonth = activePurchases.reduce((acc, p) => acc + p.amountPerMonth, 0);
+  // Calculate active linked subscriptions for this card in targetMonthStr
+  const activeLinkedSubscriptions = subscriptions
+    .filter(s => s.paymentMethod === 'credit_card' && s.cardId === card.id)
+    .map(s => {
+      const amt = getSubscriptionAmountForMonth(s, targetMonthStr);
+      return { ...s, amount: amt };
+    })
+    .filter(s => s.amount > 0);
+
+  const totalThisMonth = activePurchases.reduce((acc, p) => acc + p.amountPerMonth, 0) +
+                         activeLinkedSubscriptions.reduce((acc, s) => acc + s.amount, 0);
 
   const totalDebt = card.purchases.reduce((acc, p) => {
     const purchaseStartMonth = p.startMonth || '2026-07';
@@ -66,7 +78,7 @@ const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase, onAd
       <div className="glass-card mb-4 text-center" style={{ borderTop: `4px solid ${card.color}` }}>
         <p className="text-muted mb-1" style={{ fontSize: '0.875rem' }}>A pagar este mes</p>
         <h1 style={{ fontSize: '2.5rem', color: '#ff4757', marginBottom: '0.5rem' }}>{formatCurrency(totalThisMonth)}</h1>
-        <p className="text-muted" style={{ fontSize: '0.75rem' }}>Deuda Total Acumulada: {formatCurrency(totalDebt)}</p>
+        <p className="text-muted" style={{ fontSize: '0.75rem' }}>Deuda Total Acumulada (Cuotas): {formatCurrency(totalDebt)}</p>
       </div>
 
       <div className="flex-between mb-3">
@@ -82,12 +94,26 @@ const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase, onAd
         )}
       </div>
       
-      {activePurchases.length === 0 ? (
+      {activePurchases.length === 0 && activeLinkedSubscriptions.length === 0 ? (
         <div className="glass-panel text-center text-muted" style={{ padding: '2rem' }}>
-          No hay cuotas a pagar en este mes.
+          No hay consumos o cuotas a pagar en este mes.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {/* Subscripciones vinculadas */}
+          {activeLinkedSubscriptions.map(s => (
+            <div key={s.id} className="glass-panel" style={{ padding: '1rem', borderLeft: `3px solid var(--primary)` }}>
+              <div className="flex-between mb-1">
+                <span style={{ fontWeight: 600 }}>{s.name}</span>
+                <span style={{ fontWeight: 'bold' }}>{formatCurrency(s.amount)}</span>
+              </div>
+              <div className="text-muted" style={{ fontSize: '0.81rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <RefreshCw size={13} color="var(--primary)" /> Gasto Fijo Recurrente
+              </div>
+            </div>
+          ))}
+
+          {/* Cuotas de compras regulares */}
           {activePurchases.map(p => {
             const purchaseStartMonth = p.startMonth || '2026-07';
             const diff = getMonthsDifference(targetMonthStr, purchaseStartMonth);
@@ -103,7 +129,7 @@ const CreditCardDetail = ({ card, onBack, onEditPurchase, onDeletePurchase, onAd
                   Cuota {currentInstallment} de {p.installments}
                 </div>
                 
-                {/* Actions - Only allow edit/delete if we are viewing the current month to avoid complex time-travel edits */}
+                {/* Actions */}
                 {monthOffset === 0 && (
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--glass-border)' }}>
                     <button onClick={() => onEditPurchase(card.id, p)} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--on-surface-variant)', border: 'none' }}>

@@ -50,20 +50,30 @@ export const calculate503020 = (income, transactions, creditCards, subscriptions
     }
   });
 
-  // 2. Add credit card installments that fall into targetMonth
+  // 2. Add credit card installments and card-linked subscriptions that fall into targetMonth
+  let ccMonthlyInstallmentsTotal = 0;
   let ccMonthlyTotal = 0;
 
   creditCards.forEach(cc => {
+    // 2a. Sum card purchases/installments
     cc.purchases.forEach(p => {
       const purchaseStartMonth = p.startMonth || '2026-07';
       const diff = getMonthsDifference(targetMonthStr, purchaseStartMonth);
       if (diff >= 0 && diff < p.installments) {
+        ccMonthlyInstallmentsTotal += p.amountPerMonth;
         ccMonthlyTotal += p.amountPerMonth;
+      }
+    });
+
+    // 2b. Sum subscriptions charged to this card
+    subscriptions.forEach(sub => {
+      if (sub.paymentMethod === 'credit_card' && sub.cardId === cc.id) {
+        ccMonthlyTotal += getSubscriptionAmountForMonth(sub, targetMonthStr);
       }
     });
   });
   
-  expenses['no-esenciales'] += ccMonthlyTotal;
+  expenses['no-esenciales'] += ccMonthlyInstallmentsTotal;
 
   // 3. Add Subscriptions using month-specific historical lookup
   subscriptions.forEach(sub => {

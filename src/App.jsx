@@ -14,7 +14,7 @@ import Liquidity from './components/Liquidity';
 import IncomeManager from './components/IncomeManager';
 import IncomeSourceForm from './components/IncomeSourceForm';
 import { loadData, saveData } from './utils/storage';
-import { calculate503020 } from './utils/financeCalculator';
+import { calculate503020, getSubscriptionAmountForMonth } from './utils/financeCalculator';
 import { Wallet, PieChart, CreditCard, Clock, Target, BarChart2, Plus } from 'lucide-react';
 
 function App() {
@@ -98,9 +98,59 @@ function App() {
   const handleSaveTransaction = (transaction) => {
     const newData = { ...data };
     
-    if (editingTransaction) {
-      const index = newData.transactions.findIndex(t => t.id === transaction.id);
+    // Check if subscription branch
+    if (transaction.type === 'subscription') {
+      if (!newData.subscriptions) newData.subscriptions = [];
+      const index = newData.subscriptions.findIndex(s => s.id === transaction.id);
+      
       if (index !== -1) {
+        // Edit existing subscription
+        const existing = newData.subscriptions[index];
+        const newHistory = { ...(existing.history || { "2026-07": existing.amount || 0 }) };
+        newHistory[selectedMonth] = transaction.amount;
+        
+        newData.subscriptions[index] = {
+          ...existing,
+          name: transaction.description,
+          category: transaction.category,
+          paymentMethod: transaction.paymentMethod || 'cash',
+          cardId: transaction.paymentMethod === 'credit_card' ? transaction.cardId : undefined,
+          history: newHistory
+        };
+      } else {
+        // Create new subscription
+        const monthStr = transaction.date.slice(0, 7);
+        newData.subscriptions.push({
+          id: transaction.id || `sub-${Date.now()}`,
+          name: transaction.description,
+          category: transaction.category,
+          paymentMethod: transaction.paymentMethod || 'cash',
+          cardId: transaction.paymentMethod === 'credit_card' ? transaction.cardId : undefined,
+          history: {
+            [monthStr]: transaction.amount
+          }
+        });
+      }
+    } else if (transaction.type === 'credit_card') {
+      // Create new card purchase
+      const card = newData.creditCards.find(c => c.id === transaction.cardId);
+      if (card) {
+        if (!card.purchases) card.purchases = [];
+        card.purchases.push({
+          id: transaction.id || `p-${Date.now()}`,
+          description: transaction.description,
+          amount: transaction.amount,
+          installments: transaction.installments,
+          currentInstallment: 1,
+          amountPerMonth: transaction.amount / transaction.installments,
+          remainingMonths: transaction.installments,
+          startMonth: transaction.date.slice(0, 7),
+          date: transaction.date
+        });
+      }
+    } else {
+      // Normal transaction (expense, income, transfer)
+      if (editingTransaction) {
         if (transaction.type === 'income') {
           const monthStr = transaction.date.slice(0, 7);
           if (!newData.monthlyIncomes) newData.monthlyIncomes = {};
@@ -114,49 +164,28 @@ function App() {
               };
             }
           }
-        }
-        newData.transactions[index] = transaction;
-      }
-    } else {
-      if (transaction.type === 'income') {
-        const monthStr = transaction.date.slice(0, 7);
-        if (!newData.monthlyIncomes) newData.monthlyIncomes = {};
-        if (!newData.monthlyIncomes[monthStr]) {
-          const { sources } = getMonthlyIncomeData(monthStr);
-          newData.monthlyIncomes[monthStr] = sources.map(s => ({ ...s }));
-        }
-        newData.monthlyIncomes[monthStr].push({
-          id: transaction.id,
-          name: transaction.description,
-          amount: transaction.amount
-        });
-      } else if (transaction.type === 'credit_card') {
-        const card = newData.creditCards.find(c => c.id === transaction.cardId);
-        if (card) {
-          card.purchases.push({
-            id: transaction.id,
-            description: transaction.description,
-            totalAmount: transaction.amount,
-            installments: transaction.installments,
-            currentInstallment: 1,
-            amountPerMonth: transaction.amount / transaction.installments,
-            remainingMonths: transaction.installments,
-            startMonth: transaction.date.slice(0, 7)
-          });
-        }
-      } else if (transaction.type === 'subscription') {
-        if (!newData.subscriptions) newData.subscriptions = [];
-        const monthStr = transaction.date.slice(0, 7);
-        newData.subscriptions.push({
-          id: transaction.id || `sub-${Date.now()}`,
-          name: transaction.description,
-          category: transaction.category,
-          history: {
-            [monthStr]: transaction.amount
+        } else {
+          const index = newData.transactions.findIndex(t => t.id === transaction.id);
+          if (index !== -1) {
+            newData.transactions[index] = transaction;
           }
-        });
+        }
       } else {
-        newData.transactions.push(transaction);
+        if (transaction.type === 'income') {
+          const monthStr = transaction.date.slice(0, 7);
+          if (!newData.monthlyIncomes) newData.monthlyIncomes = {};
+          if (!newData.monthlyIncomes[monthStr]) {
+            const { sources } = getMonthlyIncomeData(monthStr);
+            newData.monthlyIncomes[monthStr] = sources.map(s => ({ ...s }));
+          }
+          newData.monthlyIncomes[monthStr].push({
+            id: transaction.id,
+            name: transaction.description,
+            amount: transaction.amount
+          });
+        } else {
+          newData.transactions.push(transaction);
+        }
       }
     }
     
@@ -360,7 +389,19 @@ function App() {
           onExpensesClick={() => setCurrentView('history')}
           onEditTransaction={(t) => { setEditingTransaction(t); setShowTransactionForm(true); }}
           onDeleteTransaction={handleDeleteTransaction}
-          onEditSubscription={(sub) => { setEditingSubscription(sub); setShowSubscriptionForm(true); }}
+          onEditSubscription={(sub) => {
+            setEditingTransaction({
+              id: sub.id,
+              description: sub.name,
+              amount: getSubscriptionAmountForMonth(sub, selectedMonth),
+              category: sub.category,
+              type: 'subscription',
+              paymentMethod: sub.paymentMethod || 'cash',
+              cardId: sub.cardId || '',
+              date: `${selectedMonth}-01`
+            });
+            setShowTransactionForm(true);
+          }}
           onDeleteSubscription={handleDeleteSubscription}
           onEditPurchase={(cardId, purchase) => {
             setEditingPurchaseCardId(cardId);
@@ -379,6 +420,7 @@ function App() {
           onDelete={handleDeleteCard}
           onViewDetails={(id) => setViewingCardId(id)}
           selectedMonth={selectedMonth}
+          subscriptions={enrichedData.subscriptions || []}
         />
       )}
 
@@ -398,6 +440,7 @@ function App() {
             setShowPurchaseForm(true);
           }}
           selectedMonth={selectedMonth}
+          subscriptions={enrichedData.subscriptions || []}
         />
       )}
 
@@ -447,15 +490,41 @@ function App() {
           {historyTab === 'variables' ? (
             <History 
               transactions={enrichedData.transactions} 
+              creditCards={enrichedData.creditCards}
               onEdit={(t) => { setEditingTransaction(t); setShowTransactionForm(true); }}
               onDelete={handleDeleteTransaction}
+              onEditPurchase={(cardId, purchase) => {
+                setEditingPurchaseCardId(cardId);
+                setEditingPurchase(purchase);
+                setShowPurchaseForm(true);
+              }}
+              onDeletePurchase={handleDeletePurchase}
             />
           ) : (
             <Subscriptions 
               subscriptions={enrichedData.subscriptions || []} 
               selectedMonth={selectedMonth}
-              onAdd={() => { setEditingSubscription(null); setShowSubscriptionForm(true); }}
-              onEdit={(sub) => { setEditingSubscription(sub); setShowSubscriptionForm(true); }}
+              onAdd={() => {
+                setEditingTransaction({
+                  type: 'subscription',
+                  category: 'esenciales',
+                  paymentMethod: 'cash'
+                });
+                setShowTransactionForm(true);
+              }}
+              onEdit={(sub) => {
+                setEditingTransaction({
+                  id: sub.id,
+                  description: sub.name,
+                  amount: getSubscriptionAmountForMonth(sub, selectedMonth),
+                  category: sub.category,
+                  type: 'subscription',
+                  paymentMethod: sub.paymentMethod || 'cash',
+                  cardId: sub.cardId || '',
+                  date: `${selectedMonth}-01`
+                });
+                setShowTransactionForm(true);
+              }}
               onDelete={handleDeleteSubscription}
             />
           )}
@@ -538,6 +607,7 @@ function App() {
           onClose={() => { setShowTransactionForm(false); setEditingTransaction(null); }} 
           onSave={handleSaveTransaction} 
           creditCards={data.creditCards}
+          selectedMonth={selectedMonth}
         />
       )}
 

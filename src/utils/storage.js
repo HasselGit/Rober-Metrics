@@ -41,13 +41,16 @@ export const loadData = () => {
       };
     }
 
-    // Migration: ensure all subscriptions have history
+    // Migration: ensure all subscriptions have history & paymentMethod
     if (data.subscriptions) {
       data.subscriptions = data.subscriptions.map(sub => {
         if (!sub.history) {
           sub.history = {
             '2026-07': sub.amount || 0
           };
+        }
+        if (!sub.paymentMethod) {
+          sub.paymentMethod = 'cash';
         }
         return sub;
       });
