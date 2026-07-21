@@ -100,21 +100,31 @@ La paleta está inspirada en la identidad de "Stitch" (Azul noche profundo y ace
 ## 3. Lógica de Negocio y Datos (`src/utils/`)
 
 ### A. Estructura del LocalStorage (`storage.js`)
-El storage implementa independencia mensual para los ingresos (estilo pestañas de Excel). La base de datos guarda los ingresos desglosados en `monthlyIncomes` bajo claves mensuales `YYYY-MM` (ej. `monthlyIncomes['2026-07']`):
+El storage implementa independencia mensual tanto para ingresos como para gastos fijos (estilo pestañas de Excel). La base de datos guarda los ingresos desglosados en `monthlyIncomes` y los importes históricos de gastos fijos en `subscriptions[i].history` bajo claves mensuales `YYYY-MM`:
 ```json
 {
   "monthlyIncomes": {
     "2026-07": [
-      { "id": "is-1", "name": "Sueldo", "amount": 1000000 },
-      { "id": "is-2", "name": "Sobresueldo", "amount": 100000 }
+      { "id": "is-1", "name": "Sueldo", "amount": 1000000 }
     ]
   },
   "transactions": [],
   "creditCards": [],
-  "subscriptions": []
+  "subscriptions": [
+    {
+      "id": "sub-1",
+      "name": "Alquiler",
+      "category": "esenciales",
+      "history": {
+        "2026-07": 300000,
+        "2026-08": 330000
+      }
+    }
+  ]
 }
 ```
-*   **Migración Automática**: Al cargar, el sistema convierte campos legacy (`incomeSources` global) a la estructura mensual `monthlyIncomes` en `2026-07`.
+*   **Decoplamiento de Gastos Fijos (Suscripciones)**: Cada gasto fijo almacena su historial de montos en un mapa `history`. El valor aplicable para un mes objetivo `targetMonth` se obtiene buscando el último mes registrado en el historial que sea menor o igual (`≤ targetMonth`). Esto permite mantener los meses pasados estáticos con sus importes históricos reales y proyectar aumentos a partir del mes en el que se editan.
+*   **Migración Automática**: Al cargar, el sistema convierte campos legacy (`incomeSources` global y `subscriptions.amount` plano) a las estructuras cronológicas correspondientes.
 *   **Reinicio Seguro (`cleaned_mock_v3`)**: El sistema autodetecta versiones obsoletas de mock layouts en el navegador local y las resetea automáticamente al iniciar para evitar fallos de renderizado.
 
 ### B. Motor del 50/30/20 (`financeCalculator.js`)
