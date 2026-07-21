@@ -100,17 +100,22 @@ La paleta está inspirada en la identidad de "Stitch" (Azul noche profundo y ace
 ## 3. Lógica de Negocio y Datos (`src/utils/`)
 
 ### A. Estructura del LocalStorage (`storage.js`)
-El storage cuenta con migración automática para el campo `incomeSources`. Si un usuario solo tiene el campo `income` numérico legacy, el sistema autogenera una fuente llamada "Ingreso Principal":
-```javascript
-export const loadData = () => {
-  const data = JSON.parse(localStorage.getItem('neo_fintech_data'));
-  if (!data.incomeSources || data.incomeSources.length === 0) {
-    data.incomeSources = [{ id: 'is-migrated', name: 'Ingreso Principal', amount: data.income || 0 }];
-  }
-  data.income = data.incomeSources.reduce((sum, s) => sum + s.amount, 0); // Sincroniza total
-  return data;
-};
+El storage implementa independencia mensual para los ingresos (estilo pestañas de Excel). La base de datos guarda los ingresos desglosados en `monthlyIncomes` bajo claves mensuales `YYYY-MM` (ej. `monthlyIncomes['2026-07']`):
+```json
+{
+  "monthlyIncomes": {
+    "2026-07": [
+      { "id": "is-1", "name": "Sueldo", "amount": 1000000 },
+      { "id": "is-2", "name": "Sobresueldo", "amount": 100000 }
+    ]
+  },
+  "transactions": [],
+  "creditCards": [],
+  "subscriptions": []
+}
 ```
+*   **Migración Automática**: Al cargar, el sistema convierte campos legacy (`incomeSources` global) a la estructura mensual `monthlyIncomes` en `2026-07`.
+*   **Reinicio Seguro (`cleaned_mock_v3`)**: El sistema autodetecta versiones obsoletas de mock layouts en el navegador local y las resetea automáticamente al iniciar para evitar fallos de renderizado.
 
 ### B. Motor del 50/30/20 (`financeCalculator.js`)
 Calcula los gastos mensuales reales contra los límites teóricos del 50%, 30% y 20%:
@@ -118,7 +123,12 @@ Calcula los gastos mensuales reales contra los límites teóricos del 50%, 30% y
 2.  **No Esenciales**: Transacciones `no-esenciales` + suscripciones `no-esenciales` + **cuotas de tarjetas de crédito activas en el mes de análisis**.
 3.  **Ahorro**: Transacciones y transferencias con categoría `ahorro`.
 
----
+### C. Amortización de Tarjetas Sin Estado (Independiente del Reloj)
+Para evitar comportamientos inconsistentes debido al huso horario o reloj del sistema, las cuotas de consumos con tarjeta de crédito se calculan mediante matemática de diferencias de meses puras:
+*   Cada compra almacena su mes de origen `startMonth` (ej. `2026-07`) y el número de cuotas `installments`.
+*   La cuota de una compra está activa en un mes objetivo `targetMonth` si y solo si la diferencia de meses cumple:
+    $$0 \le \text{Diferencia en Meses}(\text{targetMonth}, \text{startMonth}) < \text{installments}$$
+*   Esto elimina variables mutables como `remainingMonths` de la base de datos, logrando consistencia temporal retroactiva y futura.
 
 ## 4. Gráficos Highcharts 3D (Configuración Exacta)
 
@@ -162,15 +172,22 @@ Calcula los gastos mensuales reales contra los límites teóricos del 50%, 30% y
     $$\text{Saldo Libre Proyectado} = \text{Ingresos Totales} - \text{Gastos Proyectados}$$
 
 ### 3. `IncomeManager.jsx` & `IncomeSourceForm.jsx` (Gestión de Ingresos)
-*   Permite desglosar y editar múltiples fuentes (Sueldo, Sobresueldo, etc.).
-*   Al guardar o eliminar fuentes, recalcula el valor `data.income` total en tiempo real para no romper las proyecciones ni el 50/30/20.
+*   Permite desglosar y editar múltiples fuentes (Sueldo, Sobresueldo, etc.) específicas para cada mes.
+*   **Regla de Continuidad**: Si seleccionás un mes vacío, clona y hereda los ingresos del mes anterior más cercano para evitar carga redundante. Al editar, se desacopla y se guarda solo en el mes seleccionado.
+
+### 4. `History.jsx` & `Subscriptions.jsx` (Historial Unificado)
+*   La pestaña de **Historial** unifica los Gastos Variables (transacciones normales) y los Gastos Fijos (suscripciones mensuales recurrentes) en una sola vista para evitar saturar la navegación.
+*   **Segment Switcher**: Un control deslizante a nivel visual permite alternar dinámicamente entre "Gastos Variables" e "Historial de Gastos Fijos".
+*   Para garantizar la máxima limpieza visual, esta pestaña **no contiene botón flotante (FAB)**; la carga está centralizada en la pantalla principal.
 
 ---
 
 ## 6. Flujo de Navegación y Botón Flotante (FAB)
 Para evitar saltos visuales y superposiciones, el botón flotante **`+` (FAB)** se renderiza de forma **centralizada y única** en `App.jsx` debajo del enrutador de pantallas, con comportamiento dinámico basado en la vista actual:
-*   Si `currentView === 'dashboard'` $\to$ Abre formulario de transacción.
+*   Si `currentView === 'dashboard'` $\to$ Abre el formulario central de transacciones.
 *   Si `currentView === 'cards'` $\to$ Abre formulario de nueva tarjeta de crédito.
 *   Si `currentView === 'goals'` $\to$ Abre formulario de meta/alcancía.
 *   Si `currentView === 'income'` $\to$ Abre formulario de fuente de ingreso.
+*   **Carga de Gastos Fijos en Formulario Único**: El formulario central de transacciones (`TransactionForm.jsx`) incluye la opción de tipo de gasto "Gasto Fijo / Suscripción (Recurrente)". Al seleccionarse, se oculta la categoría Ahorro y al guardarse, se rutea de forma automática a la base de datos de suscripciones mensuales recurrentes.
 *   Posición constante en pantalla: `position: fixed; bottom: 6rem; right: 1.5rem`.
+
