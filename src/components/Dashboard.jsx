@@ -312,18 +312,37 @@ const CAT = {
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="flex-between mb-4 sticky-header">
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <h2 className="text-muted" style={{ fontSize: '0.9rem', fontWeight: 500, margin: 0 }}>Balance de</h2>
-            <input
-              type="month" value={selectedMonth}
-              onChange={(e) => onMonthChange(e.target.value)}
-              style={{
-                background: 'transparent', border: 'none', color: 'var(--primary)',
-                fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 600,
-                outline: 'none', cursor: 'pointer'
-              }}
-            />
+        <div style={{ width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+            <h2 className="text-muted" style={{ fontSize: '0.9rem', fontWeight: 500, margin: 0, flexShrink: 0 }}>Balance de</h2>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(0, 194, 212, 0.12)',
+              border: '1px solid rgba(0, 194, 212, 0.35)',
+              borderRadius: '0.6rem',
+              padding: '3px 10px',
+              maxWidth: '100%'
+            }}>
+              <Calendar size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
+              <input
+                type="month" value={selectedMonth}
+                onChange={(e) => onMonthChange(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--primary)',
+                  fontFamily: 'inherit',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  outline: 'none',
+                  cursor: 'pointer',
+                  width: 'auto',
+                  minWidth: '165px'
+                }}
+              />
+            </div>
           </div>
           <h1 style={{ fontSize: '2.4rem', color: 'var(--on-bg)' }}>{formatCurrency(currentBalance)}</h1>
         </div>

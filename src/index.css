@@ -221,3 +221,23 @@ select.input-field {
   background-color: var(--bg-color);
   padding-top: 1rem; margin-top: -1rem;
 }
+
+/* ── Month Input Styling & Calendar Indicator ───────────────────────────── */
+input[type="month"] {
+  color-scheme: dark;
+}
+
+input[type="month"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(70%) sepia(85%) saturate(1800%) hue-rotate(145deg) brightness(110%) contrast(105%);
+  opacity: 1;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+input[type="month"]::-webkit-calendar-picker-indicator:hover {
+  transform: scale(1.15);
+  filter: invert(80%) sepia(90%) saturate(2000%) hue-rotate(145deg) brightness(120%) contrast(110%);
+}
