@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { formatCurrency } from '../utils/financeCalculator';
 import { X } from 'lucide-react';
+import CurrencyInput from './CurrencyInput';
 
 const IncomeSourceForm = ({ source, onSave, onClose }) => {
   const [name, setName] = useState(source?.name || '');
-  const [amount, setAmount] = useState(source?.amount?.toString() || '');
+  const [amount, setAmount] = useState(source?.amount || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -52,15 +53,10 @@ const IncomeSourceForm = ({ source, onSave, onClose }) => {
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--on-surface-variant)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Monto mensual
             </label>
-            <input
-              className="input-field"
-              type="number"
-              placeholder="0"
+            <CurrencyInput
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              min="0"
-              step="1"
-              required
+              onChange={(val) => setAmount(val)}
+              placeholder="$ 0,0"
             />
             {amount && !isNaN(parseFloat(amount)) && (
               <p style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '0.4rem' }}>

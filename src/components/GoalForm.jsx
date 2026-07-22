@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import CurrencyInput from './CurrencyInput';
 
 const GoalForm = ({ onClose, onSave, initialData, isFunding }) => {
   const [formData, setFormData] = useState({
@@ -46,12 +47,10 @@ const GoalForm = ({ onClose, onSave, initialData, isFunding }) => {
           {isFunding ? (
             <div className="mb-4">
               <label className="text-muted mb-1" style={{ display: 'block', fontSize: '0.875rem' }}>Monto a aportar ($)</label>
-              <input 
-                type="number" 
-                className="input-field" 
-                placeholder="0.00" 
+              <CurrencyInput 
                 value={formData.fundingAmount}
-                onChange={e => setFormData({...formData, fundingAmount: e.target.value})}
+                onChange={val => setFormData({...formData, fundingAmount: val})}
+                placeholder="$ 0,0"
               />
             </div>
           ) : (
@@ -69,12 +68,10 @@ const GoalForm = ({ onClose, onSave, initialData, isFunding }) => {
 
               <div className="mb-3">
                 <label className="text-muted mb-1" style={{ display: 'block', fontSize: '0.875rem' }}>Monto Objetivo ($)</label>
-                <input 
-                  type="number" 
-                  className="input-field" 
-                  placeholder="0.00" 
+                <CurrencyInput 
                   value={formData.targetAmount}
-                  onChange={e => setFormData({...formData, targetAmount: e.target.value})}
+                  onChange={val => setFormData({...formData, targetAmount: val})}
+                  placeholder="$ 0,0"
                 />
               </div>
 

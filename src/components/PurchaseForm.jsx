@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import CurrencyInput from './CurrencyInput';
 
 const PurchaseForm = ({ onClose, onSave, initialData }) => {
   const [formData, setFormData] = useState({
     description: initialData?.description || '',
-    amount: initialData?.totalAmount || '',
+    amount: initialData?.totalAmount || initialData?.amount || '',
     installments: initialData?.installments || 1
   });
 
@@ -16,6 +17,7 @@ const PurchaseForm = ({ onClose, onSave, initialData }) => {
       id: initialData?.id || Date.now().toString(),
       description: formData.description,
       totalAmount: parseFloat(formData.amount),
+      amount: parseFloat(formData.amount),
       installments: parseInt(formData.installments),
       currentInstallment: initialData?.currentInstallment || 1,
       amountPerMonth: parseFloat(formData.amount) / parseInt(formData.installments),
@@ -47,12 +49,10 @@ const PurchaseForm = ({ onClose, onSave, initialData }) => {
 
           <div className="mb-3">
             <label className="text-muted mb-1" style={{ display: 'block', fontSize: '0.875rem' }}>Monto Total ($)</label>
-            <input 
-              type="number" 
-              className="input-field" 
-              placeholder="0.00" 
+            <CurrencyInput 
               value={formData.amount}
-              onChange={e => setFormData({...formData, amount: e.target.value})}
+              onChange={val => setFormData({...formData, amount: val})}
+              placeholder="$ 0,0"
             />
           </div>
 

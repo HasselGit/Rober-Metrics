@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import CurrencyInput from './CurrencyInput';
 
 const SubscriptionForm = ({ onClose, onSave, initialData }) => {
   const [formData, setFormData] = useState({
@@ -56,12 +57,10 @@ const SubscriptionForm = ({ onClose, onSave, initialData }) => {
 
           <div className="mb-4">
             <label className="text-muted mb-1" style={{ display: 'block', fontSize: '0.875rem' }}>Monto Mensual ($)</label>
-            <input 
-              type="number" 
-              className="input-field" 
-              placeholder="0.00" 
+            <CurrencyInput 
               value={formData.amount}
-              onChange={e => setFormData({...formData, amount: e.target.value})}
+              onChange={val => setFormData({...formData, amount: val})}
+              placeholder="$ 0,0"
             />
           </div>
 

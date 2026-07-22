@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import CurrencyInput from './CurrencyInput';
 
 const CardForm = ({ onClose, onSave, initialData }) => {
   const [formData, setFormData] = useState({
@@ -45,12 +46,10 @@ const CardForm = ({ onClose, onSave, initialData }) => {
 
           <div className="mb-3">
             <label className="text-muted mb-1" style={{ display: 'block', fontSize: '0.875rem' }}>Límite de Crédito ($)</label>
-            <input 
-              type="number" 
-              className="input-field" 
-              placeholder="0.00" 
+            <CurrencyInput 
               value={formData.limit}
-              onChange={e => setFormData({...formData, limit: e.target.value})}
+              onChange={val => setFormData({...formData, limit: val})}
+              placeholder="$ 0,0"
             />
           </div>
 

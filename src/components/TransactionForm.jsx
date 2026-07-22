@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, ArrowLeft } from 'lucide-react';
+import CurrencyInput from './CurrencyInput';
 
 const TransactionForm = ({ onClose, onSave, creditCards, initialData, selectedMonth }) => {
   const [step, setStep] = useState(initialData ? 2 : 1);
@@ -248,12 +249,10 @@ const TransactionForm = ({ onClose, onSave, creditCards, initialData, selectedMo
               <label className="text-muted mb-1" style={{ display: 'block', fontSize: '0.875rem' }}>
                 {wizardType === 'recurring' ? 'Monto Mensual ($)' : 'Monto Total ($)'}
               </label>
-              <input 
-                type="number" 
-                className="input-field" 
-                placeholder="0.00" 
+              <CurrencyInput 
                 value={formData.amount}
-                onChange={e => setFormData({...formData, amount: e.target.value})}
+                onChange={val => setFormData({...formData, amount: val})}
+                placeholder="$ 0,0"
               />
             </div>
 
