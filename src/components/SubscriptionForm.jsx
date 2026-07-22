@@ -60,7 +60,7 @@ const SubscriptionForm = ({ onClose, onSave, initialData }) => {
             <CurrencyInput 
               value={formData.amount}
               onChange={val => setFormData({...formData, amount: val})}
-              placeholder="$ 0,0"
+              placeholder="$ 0"
             />
           </div>
 

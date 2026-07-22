@@ -148,7 +148,6 @@ export const formatCurrency = (amount) => {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1
+    maximumFractionDigits: 0
   }).format(amount);
 };

@@ -56,7 +56,7 @@ const IncomeSourceForm = ({ source, onSave, onClose }) => {
             <CurrencyInput
               value={amount}
               onChange={(val) => setAmount(val)}
-              placeholder="$ 0,0"
+              placeholder="$ 0"
             />
             {amount && !isNaN(parseFloat(amount)) && (
               <p style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '0.4rem' }}>

@@ -49,7 +49,7 @@ const CardForm = ({ onClose, onSave, initialData }) => {
             <CurrencyInput 
               value={formData.limit}
               onChange={val => setFormData({...formData, limit: val})}
-              placeholder="$ 0,0"
+              placeholder="$ 0"
             />
           </div>
 

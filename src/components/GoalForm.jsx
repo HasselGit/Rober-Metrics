@@ -50,7 +50,7 @@ const GoalForm = ({ onClose, onSave, initialData, isFunding }) => {
               <CurrencyInput 
                 value={formData.fundingAmount}
                 onChange={val => setFormData({...formData, fundingAmount: val})}
-                placeholder="$ 0,0"
+                placeholder="$ 0"
               />
             </div>
           ) : (
@@ -71,7 +71,7 @@ const GoalForm = ({ onClose, onSave, initialData, isFunding }) => {
                 <CurrencyInput 
                   value={formData.targetAmount}
                   onChange={val => setFormData({...formData, targetAmount: val})}
-                  placeholder="$ 0,0"
+                  placeholder="$ 0"
                 />
               </div>
 
