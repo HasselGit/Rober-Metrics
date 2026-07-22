@@ -1,11 +1,14 @@
-# R-Metrics: Guía Directriz de Reproducción y Diseño
-Este documento detalla la arquitectura, el sistema de diseño, la configuración técnica y los flujos interactivos necesarios para reproducir con total fidelidad el proyecto **R-Metrics** (Neo-Fintech) hasta su estado actual.
+# R-Metrics: Guía Directriz de Reproducción y Diseño Completa
+
+Este documento detalla la arquitectura, la base de datos, el sistema de diseño, los algoritmos matemáticos y cada flujo interactivo necesario para reproducir con **precisión del 100% y hasta el más mínimo detalle** el proyecto **R-Metrics** (Neo-Fintech) hasta su estado actual.
 
 ---
 
-## 1. Stack Tecnológico y Dependencias
-El proyecto está construido sobre **React** y empaquetado con **Vite**. Las dependencias clave requeridas para el funcionamiento y los gráficos 3D son:
+## 1. Stack Tecnológico y Configuración
 
+El proyecto está construido sobre **React (v18)** y empaquetado con **Vite**.
+
+### Dependencias (`package.json`)
 ```json
 {
   "dependencies": {
@@ -22,85 +25,202 @@ El proyecto está construido sobre **React** y empaquetado con **Vite**. Las dep
 }
 ```
 
-*Nota: Para habilitar los gráficos 3D de Highcharts, es obligatorio importar y activar el módulo 3D en el punto de entrada de la aplicación (`src/main.jsx` o similar):*
+### Inicialización de Highcharts 3D (`src/main.jsx`)
+Es estrictamente obligatorio inicializar el módulo 3D de Highcharts al arrancar la app:
 ```javascript
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css';
 import Highcharts from 'highcharts';
 import Highcharts3D from 'highcharts/highcharts-3d';
+
 Highcharts3D(Highcharts);
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 ```
 
 ---
 
 ## 2. Sistema de Diseño (CSS Tokens & Glassmorphism)
-La paleta está inspirada en la identidad de "Stitch" (Azul noche profundo y acentos de Cian vibrante y Dorado R-Metrics). Se encuentra centralizada en `src/index.css`.
 
-### Variables de Color (CSS Custom Properties)
+Centralizado en `src/index.css`, con la paleta de acentos estilo **Stitch** (Azul Noche Profundo, Cian Neón y Dorado R-Metrics).
+
+### Variables de Color (`:root`)
 ```css
 :root {
+  /* Fondos */
   --bg-color: #080d1a;          /* Azul noche profundo */
   --surface: #0f1829;           /* Superficie principal */
   --surface-mid: #162035;       /* Tarjetas */
   --surface-container: #1e2d47; /* Elementos elevados */
-  
+  --surface-container-high: #263858;
+
+  /* Texto */
+  --on-bg: #e8f0fe;
+  --on-surface: #d0daf0;
+  --on-surface-variant: #8098b8;
+
   /* Acento primario (Cian) */
   --primary: #00c2d4;
   --primary-dark: #0097a8;
+  --primary-light: #40d8e8;
+  --on-primary: #080d1a;
   --primary-glow: rgba(0, 194, 212, 0.22);
   --primary-glow-strong: rgba(0, 194, 212, 0.4);
 
-  /* Acento secundario (Dorado) */
+  /* Acento secundario (Dorado R-Metrics) */
   --gold: #d4af37;
   --gold-light: #e8c84a;
+  --gold-glow: rgba(212, 175, 55, 0.2);
 
-  /* Estados */
+  /* Estado */
   --success: #22c55e;
   --warning: #f59e0b;
   --error: #f43f5e;
+  --error-glow: rgba(244, 63, 94, 0.2);
 
   /* Glassmorphism */
   --glass-bg: rgba(15, 24, 41, 0.7);
   --glass-border: rgba(0, 194, 212, 0.12);
   --glass-border-hover: rgba(0, 194, 212, 0.28);
+
+  --font-heading: 'Sora', sans-serif;
+  --font-body: 'Inter', sans-serif;
 }
 ```
 
-### Componentes Visuales Clave en CSS
-*   **Tarjeta Glassmorphic**:
-    ```css
-    .glass-card {
-      background: linear-gradient(135deg, rgba(22,32,53,0.85) 0%, rgba(15, 24, 41, 0.9) 100%);
-      backdrop-filter: blur(24px);
-      border: 1px solid var(--glass-border);
-      border-radius: 1.5rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    }
-    ```
-*   **Bottom Sheet (Bandeja Deslizable)**:
-    Usa un overlay semitraslúcido con desenfoque ligero para no tapar los gráficos del fondo, y una animación de deslizamiento vertical:
-    ```css
-    .category-sheet-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: rgba(8, 13, 26, 0.4);
-      backdrop-filter: blur(4px);
-      z-index: 1000; display: flex; align-items: flex-end; justify-content: center;
-    }
-    .category-sheet {
-      background: linear-gradient(180deg, rgba(22, 32, 53, 0.95) 0%, rgba(15, 24, 41, 0.98) 100%);
-      backdrop-filter: blur(20px);
-      width: 100%; max-width: 600px;
-      max-height: 65vh;
-      border-radius: 1.5rem 1.5rem 0 0; padding: 1.5rem;
-      border-top: 1px solid var(--glass-border);
-      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    ```
+### Componentes Visuales y Reglas CSS Clave
+```css
+/* Tarjeta Glassmorphic */
+.glass-card {
+  background: linear-gradient(135deg, rgba(22,32,53,0.85) 0%, rgba(15, 24, 41, 0.9) 100%);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* Bottom Sheet Overlay & Modal */
+.bottom-sheet-overlay, .category-sheet-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(8, 13, 26, 0.6);
+  backdrop-filter: blur(6px);
+  z-index: 1000; display: flex; align-items: flex-end; justify-content: center;
+}
+.bottom-sheet, .category-sheet {
+  background: linear-gradient(180deg, rgba(22, 32, 53, 0.96) 0%, rgba(15, 24, 41, 0.99) 100%);
+  backdrop-filter: blur(20px);
+  width: 100%; max-width: 600px;
+  max-height: 85vh;
+  border-radius: 1.5rem 1.5rem 0 0; padding: 1.5rem;
+  border-top: 1px solid var(--glass-border);
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Desplegable de Calendario / Mes con icono Cian de Alto Contraste */
+input[type="month"] {
+  color-scheme: dark;
+}
+input[type="month"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(70%) sepia(85%) saturate(1800%) hue-rotate(145deg) brightness(110%) contrast(105%);
+  opacity: 1;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+```
 
 ---
 
-## 3. Lógica de Negocio y Datos (`src/utils/`)
+## 3. Especificación de Formateo de Moneda (Enteros Naturales sin Decimales)
 
-### A. Estructura del LocalStorage (`storage.js`)
-El storage implementa independencia mensual tanto para ingresos como para gastos fijos (estilo pestañas de Excel). La base de datos guarda los ingresos desglosados en `monthlyIncomes` y los importes históricos de gastos fijos en `subscriptions[i].history` bajo claves mensuales `YYYY-MM`:
+En `src/utils/financeCalculator.js`:
+```javascript
+export const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+```
+*   **Regla R-Metrics**: Todos los valores monetarios de la aplicación se presentan como enteros naturales con separadores de miles y sin ceros ni lugares decimales (ej. **`$ 35.000`**, **`$ 740.000`**).
+
+---
+
+## 4. Componente de Entrada Monetaria Fluida (`CurrencyInput.jsx`)
+
+Para evitar bloqueos al presionar **Backspace** o escribir montos, `CurrencyInput.jsx` procesa entradas de texto usando `inputMode="numeric"`:
+
+```jsx
+import React, { useState, useEffect } from 'react';
+import { formatCurrency } from '../utils/financeCalculator';
+
+const CurrencyInput = ({ value, onChange, placeholder = "$ 0", className = "input-field", style, disabled }) => {
+  const formatDisplay = (val) => {
+    if (val === '' || val === null || val === undefined) return '';
+    const num = typeof val === 'number' ? val : parseInt(String(val).replace(/[^\d]/g, ''), 10);
+    if (isNaN(num)) return '';
+    return formatCurrency(num);
+  };
+
+  const [displayValue, setDisplayValue] = useState(() => formatDisplay(value));
+
+  useEffect(() => {
+    setDisplayValue(formatDisplay(value));
+  }, [value]);
+
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    if (!raw) {
+      setDisplayValue('');
+      onChange('');
+      return;
+    }
+
+    const digitsOnly = raw.replace(/[^\d]/g, '');
+    if (!digitsOnly) {
+      setDisplayValue('');
+      onChange('');
+      return;
+    }
+
+    const numericValue = parseInt(digitsOnly, 10);
+    setDisplayValue(formatCurrency(numericValue));
+    onChange(numericValue);
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className={className}
+      style={style}
+      disabled={disabled}
+      placeholder={placeholder}
+      value={displayValue}
+      onChange={handleChange}
+    />
+  );
+};
+
+export default CurrencyInput;
+```
+*   **Comportamiento de Borrado**: Tipear `35000` $\to$ `$ 35.000`. Presionar Backspace $\to$ `$ 3.500` $\to$ `$ 350` $\to$ `$ 35` $\to$ `$ 3` $\to$ `empty`.
+
+---
+
+## 5. Estructura de Base de Datos y Persistencia (`src/utils/storage.js`)
+
+Persistida en `localStorage` bajo la clave `neo_fintech_data`:
+
 ```json
 {
   "monthlyIncomes": {
@@ -108,96 +228,125 @@ El storage implementa independencia mensual tanto para ingresos como para gastos
       { "id": "is-1", "name": "Sueldo", "amount": 1000000 }
     ]
   },
-  "transactions": [],
-  "creditCards": [],
+  "transactions": [
+    {
+      "id": "t-1",
+      "description": "Supermercado",
+      "amount": 35000,
+      "type": "expense",
+      "category": "esenciales",
+      "date": "2026-07-21",
+      "paymentMethod": "cash"
+    }
+  ],
+  "creditCards": [
+    {
+      "id": "cc-1",
+      "name": "Visa Galicia",
+      "limit": 500000,
+      "color": "#70a1ff",
+      "purchases": [
+        {
+          "id": "p-1",
+          "description": "Zapatillas",
+          "totalAmount": 120000,
+          "amount": 120000,
+          "installments": 3,
+          "startMonth": "2026-07",
+          "amountPerMonth": 40000
+        }
+      ]
+    }
+  ],
   "subscriptions": [
     {
       "id": "sub-1",
-      "name": "Alquiler",
-      "category": "esenciales",
+      "name": "Netflix",
+      "category": "no-esenciales",
+      "paymentMethod": "credit_card",
+      "cardId": "cc-1",
       "history": {
-        "2026-07": 300000,
-        "2026-08": 330000
+        "2026-07": 12000
       }
+    }
+  ],
+  "goals": [
+    {
+      "id": "g-1",
+      "name": "Fondo de Emergencia",
+      "targetAmount": 500000,
+      "currentAmount": 150000,
+      "color": "#d4af37"
     }
   ]
 }
 ```
-*   **Decoplamiento de Gastos Fijos (Suscripciones)**: Cada gasto fijo almacena su historial de montos en un mapa `history`. El valor aplicable para un mes objetivo `targetMonth` se obtiene buscando el último mes registrado en el historial que sea menor o igual (`≤ targetMonth`). Esto permite mantener los meses pasados estáticos con sus importes históricos reales y proyectar aumentos a partir del mes en el que se editan.
-*   **Migración Automática**: Al cargar, el sistema convierte campos legacy (`incomeSources` global y `subscriptions.amount` plano) a las estructuras cronológicas correspondientes.
-*   **Reinicio Seguro (`cleaned_mock_v3`)**: El sistema autodetecta versiones obsoletas de mock layouts en el navegador local y las resetea automáticamente al iniciar para evitar fallos de renderizado.
 
-### B. Motor del 50/30/20 (`financeCalculator.js`)
-Calcula los gastos mensuales reales contra los límites teóricos del 50%, 30% y 20%:
-1.  **Esenciales**: Filtra transacciones con categoría `esenciales` + suscripciones `esenciales`.
-2.  **No Esenciales**: Transacciones `no-esenciales` + suscripciones `no-esenciales` + **cuotas de tarjetas de crédito activas en el mes de análisis**.
-3.  **Ahorro**: Transacciones y transferencias con categoría `ahorro`.
-
-### C. Amortización de Tarjetas Sin Estado (Independiente del Reloj)
-Para evitar comportamientos inconsistentes debido al huso horario o reloj del sistema, las cuotas de consumos con tarjeta de crédito se calculan mediante matemática de diferencias de meses puras:
-*   Cada compra almacena su mes de origen `startMonth` (ej. `2026-07`) y el número de cuotas `installments`.
-*   La cuota de una compra está activa en un mes objetivo `targetMonth` si y solo si la diferencia de meses cumple:
-    $$0 \le \text{Diferencia en Meses}(\text{targetMonth}, \text{startMonth}) < \text{installments}$$
-*   Esto elimina variables mutables como `remainingMonths` de la base de datos, logrando consistencia temporal retroactiva y futura.
-
-## 4. Gráficos Highcharts 3D (Configuración Exacta)
-
-### A. Donut 3D (`Dashboard.jsx`)
-*   **Efecto 3D**: `options3d: { enabled: true, alpha: 42, beta: 0 }`.
-*   **Dimensiones**: `innerSize: '52%'`, `depth: 48`.
-*   **Interactividad**: Configurado con `slicedOffset: 14` y un evento de clic sobre el punto para sincronizar la selección con la apertura del Bottom Sheet:
-    ```javascript
-    point: {
-      events: {
-        click: function() {
-          const nameMap = { 'Esenciales': 'esenciales', 'No Esenciales': 'noEsenciales', 'Ahorro': 'ahorro' };
-          toggleCat(nameMap[this.name]); // Setea selectedCat y abre la bandeja
-        }
-      }
-    }
-    ```
-
-### B. Área 3D de Ahorro Acumulado (`Dashboard.jsx`)
-*   **Efecto 3D**: `options3d: { enabled: true, alpha: 18, beta: 6, depth: 70 }`.
-*   **Línea y Relleno**: Línea de grosor `3` color `#00c2d4`, relleno con gradiente vertical de `rgba(0,194,212,0.5)` a transparente.
-
-### C. Columnas de Proyección 3D (`Liquidity.jsx`)
-*   **Efecto 3D**: `options3d: { enabled: true, alpha: 8, beta: 10, depth: 50 }`.
-*   **Series**: Muestra simultáneamente los Ingresos (Cian), Gastos Proyectados (Índigo) y Saldo Libre (Dorado si $\ge 0$, Rojo si $< 0$).
+### Reglas de Decoplamiento e Historial:
+1.  **Gastos Fijos (Suscripciones)**: Almacenan importes históricos en `history['YYYY-MM']`. El valor para un mes objetivo `targetMonth` se resuelve mediante `history[K]` donde $K = \max(\{k \le \text{targetMonth}\})$.
+2.  **Suscripciones Vinculadas a Tarjeta**: Si `subscription.paymentMethod === 'credit_card'`, su costo mensual se computa dentro de la factura mensual de la tarjeta correspondiente (`cardId`), sumándose al resumen de la tarjeta y evitando duplicaciones en los totales globales.
+3.  **Fuentes de Ingreso por Mes**: Al consultar un mes sin datos, se heredan automáticamente los ingresos del mes anterior más cercano. Al editar un ingreso, se copia y desacopla en el mes seleccionado.
 
 ---
 
-## 5. Arquitectura de Pantallas y Componentes
+## 6. Algoritmo del Presupuesto 50/30/20 (`financeCalculator.js`)
 
-### 1. `Dashboard.jsx` (Inicio)
-*   **Tarjetas Clickables**: La tarjeta de Ingresos y Gastos tienen un puntero `›` dorado (`var(--gold)`). Ingresos navega a la edición de fuentes, y Gastos al Historial de transacciones.
-*   **Sincronización del Bottom Sheet**: Al seleccionar una categoría (por clic en la fila de progreso o en la rebanada del donut), se activa la bandeja deslizable mostrando:
-    *   *Consumos Variables* (de `transactions` que empiezan con `YYYY-MM`).
-    *   *Gastos Fijos* (de `subscriptions`).
-    *   *Cuotas de Tarjeta* (calculadas para el mes target indicando número de cuota, ej: `Cuota 2/3`).
+```javascript
+// 1. Esenciales (50%)
+const esenciales = 
+  transactions.filter(t => t.date.startsWith(month) && t.category === 'esenciales' && t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) +
+  subscriptions.filter(s => s.category === 'esenciales').reduce((sum, s) => sum + getSubscriptionAmountForMonth(s, month), 0);
 
-### 2. `Liquidity.jsx` (Liquidez)
-*   **Cálculo de Proyección a 3 meses**:
-    $$\text{Gastos Proyectados} = \text{Total Suscripciones} + \text{Cuotas Tarjetas Activas} + \text{Promedio Gastos Variables de últimos 3 meses}$$
-    $$\text{Saldo Libre Proyectado} = \text{Ingresos Totales} - \text{Gastos Proyectados}$$
+// 2. No Esenciales (30%)
+const noEsenciales = 
+  transactions.filter(t => t.date.startsWith(month) && t.category === 'no-esenciales' && t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) +
+  subscriptions.filter(s => s.category === 'no-esenciales').reduce((sum, s) => sum + getSubscriptionAmountForMonth(s, month), 0) +
+  cuotasDeTarjetasActivasEnElMes(creditCards, month);
 
-### 3. `IncomeManager.jsx` & `IncomeSourceForm.jsx` (Gestión de Ingresos)
-*   Permite desglosar y editar múltiples fuentes (Sueldo, Sobresueldo, etc.) específicas para cada mes.
-*   **Regla de Continuidad**: Si seleccionás un mes vacío, clona y hereda los ingresos del mes anterior más cercano para evitar carga redundante. Al editar, se desacopla y se guarda solo en el mes seleccionado.
-
-### 4. `History.jsx` & `Subscriptions.jsx` (Historial Unificado)
-*   La pestaña de **Historial** unifica los Gastos Variables (transacciones normales) y los Gastos Fijos (suscripciones mensuales recurrentes) en una sola vista para evitar saturar la navegación.
-*   **Segment Switcher**: Un control deslizante a nivel visual permite alternar dinámicamente entre "Gastos Variables" e "Historial de Gastos Fijos".
-*   Para garantizar la máxima limpieza visual, esta pestaña **no contiene botón flotante (FAB)**; la carga está centralizada en la pantalla principal.
+// 3. Ahorro (20%)
+const ahorro = 
+  transactions.filter(t => t.date.startsWith(month) && (t.category === 'ahorro' || t.type === 'transfer')).reduce((sum, t) => sum + t.amount, 0);
+```
 
 ---
 
-## 6. Flujo de Navegación y Botón Flotante (FAB)
-Para evitar saltos visuales y superposiciones, el botón flotante **`+` (FAB)** se renderiza de forma **centralizada y única** en `App.jsx` debajo del enrutador de pantallas, con comportamiento dinámico basado en la vista actual:
-*   Si `currentView === 'dashboard'` $\to$ Abre el formulario central de transacciones.
-*   Si `currentView === 'cards'` $\to$ Abre formulario de nueva tarjeta de crédito.
-*   Si `currentView === 'goals'` $\to$ Abre formulario de meta/alcancía.
-*   Si `currentView === 'income'` $\to$ Abre formulario de fuente de ingreso.
-*   **Carga de Gastos Fijos en Formulario Único**: El formulario central de transacciones (`TransactionForm.jsx`) incluye la opción de tipo de gasto "Gasto Fijo / Suscripción (Recurrente)". Al seleccionarse, se oculta la categoría Ahorro y al guardarse, se rutea de forma automática a la base de datos de suscripciones mensuales recurrentes.
-*   Posición constante en pantalla: `position: fixed; bottom: 6rem; right: 1.5rem`.
+## 7. Formulario Central en 2 Pasos (`TransactionForm.jsx`)
 
+Refactorizado como un wizard Bottom Sheet interactivo:
+
+*   **Paso 1 (Tipo de Movimiento)**: Presenta tarjetas elegibles:
+    *   *Gasto Único* (`single`)
+    *   *Gasto Recurrente / Fijo* (`recurring`)
+    *   *Ingreso* (`income`)
+    *   *Ahorro / Inversión* (`ahorro`)
+*   **Paso 2 (Detalles y Medio de Pago Condicional)**:
+    *   Si es *Gasto Único* o *Gasto Recurrente*: Muestra selector de medio de pago: **Efectivo / Débito** vs **Tarjeta de Crédito**.
+    *   Si elige *Tarjeta de Crédito*: Habilita un selector desplegable con las tarjetas registradas.
+    *   Usa el componente `<CurrencyInput />` para el monto.
+
+---
+
+## 8. Pantalla de Historial Unificado (`History.jsx`)
+
+*   **Encabezado en la Parte Superior**:
+    1.  Título *"Historial de Movimientos"* y **Buscador de Texto** ubicados en la parte superior.
+    2.  Pestañas de Filtro ubicadas inmediatamente **debajo del buscador**:
+        *   `Todos`
+        *   `Gastos Variables`
+        *   `Fijos / Suscripciones`
+*   **Resultados Unificados**: Integra transacciones directas, cuotas de tarjeta de crédito activas y suscripciones fijos en una sola lista cronológica filtrable.
+
+---
+
+## 9. Selector de Mes en Encabezado (`Dashboard.jsx`)
+
+*   **Sin recortes de texto**: El selector `<input type="month">` se envuelve en una cápsula con `min-width: 165px` y fondo `rgba(0,194,212,0.12)`.
+*   **Icono de Calendario Cian de Alto Contraste**: Acompañado por un icono `Calendar` de Lucide y estilizado en CSS con `::-webkit-calendar-picker-indicator` invertido a Cian brillante.
+
+---
+
+## 10. Comprobación y Despliegue
+
+*   **Servidor Local**: `npm run dev`
+*   **Compilación**: `npm run build`
+*   **Despliegue Producción**: `npx vercel --prod --yes` (URL: `https://robermetrics.vercel.app`)
