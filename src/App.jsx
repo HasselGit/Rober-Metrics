@@ -445,90 +445,34 @@ function App() {
       )}
 
       {currentView === 'history' && (
-        <>
-          <div className="container" style={{ paddingTop: '1.25rem', paddingBottom: '0.25rem' }}>
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <button 
-                onClick={() => setHistoryTab('variables')}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  borderRadius: '0.35rem',
-                  border: 'none',
-                  background: historyTab === 'variables' ? 'var(--primary)' : 'none',
-                  color: historyTab === 'variables' ? '#000' : 'var(--on-surface-variant)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: historyTab === 'variables' ? '0 2px 6px rgba(0, 194, 212, 0.25)' : 'none'
-                }}
-              >
-                Gastos Variables
-              </button>
-              <button 
-                onClick={() => setHistoryTab('fijos')}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  borderRadius: '0.35rem',
-                  border: 'none',
-                  background: historyTab === 'fijos' ? 'var(--primary)' : 'none',
-                  color: historyTab === 'fijos' ? '#000' : 'var(--on-surface-variant)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: historyTab === 'fijos' ? '0 2px 6px rgba(0, 194, 212, 0.25)' : 'none'
-                }}
-              >
-                Fijos / Suscripciones
-              </button>
-            </div>
-          </div>
-
-          {historyTab === 'variables' ? (
-            <History 
-              transactions={enrichedData.transactions} 
-              creditCards={enrichedData.creditCards}
-              onEdit={(t) => { setEditingTransaction(t); setShowTransactionForm(true); }}
-              onDelete={handleDeleteTransaction}
-              onEditPurchase={(cardId, purchase) => {
-                setEditingPurchaseCardId(cardId);
-                setEditingPurchase(purchase);
-                setShowPurchaseForm(true);
-              }}
-              onDeletePurchase={handleDeletePurchase}
-            />
-          ) : (
-            <Subscriptions 
-              subscriptions={enrichedData.subscriptions || []} 
-              selectedMonth={selectedMonth}
-              onAdd={() => {
-                setEditingTransaction({
-                  type: 'subscription',
-                  category: 'esenciales',
-                  paymentMethod: 'cash'
-                });
-                setShowTransactionForm(true);
-              }}
-              onEdit={(sub) => {
-                setEditingTransaction({
-                  id: sub.id,
-                  description: sub.name,
-                  amount: getSubscriptionAmountForMonth(sub, selectedMonth),
-                  category: sub.category,
-                  type: 'subscription',
-                  paymentMethod: sub.paymentMethod || 'cash',
-                  cardId: sub.cardId || '',
-                  date: `${selectedMonth}-01`
-                });
-                setShowTransactionForm(true);
-              }}
-              onDelete={handleDeleteSubscription}
-            />
-          )}
-        </>
+        <History 
+          transactions={enrichedData.transactions} 
+          creditCards={enrichedData.creditCards}
+          subscriptions={enrichedData.subscriptions || []}
+          selectedMonth={selectedMonth}
+          onEdit={(t) => { setEditingTransaction(t); setShowTransactionForm(true); }}
+          onDelete={handleDeleteTransaction}
+          onEditPurchase={(cardId, purchase) => {
+            setEditingPurchaseCardId(cardId);
+            setEditingPurchase(purchase);
+            setShowPurchaseForm(true);
+          }}
+          onDeletePurchase={handleDeletePurchase}
+          onEditSubscription={(sub) => {
+            setEditingTransaction({
+              id: sub.id,
+              description: sub.name,
+              amount: getSubscriptionAmountForMonth(sub, selectedMonth),
+              category: sub.category,
+              type: 'subscription',
+              paymentMethod: sub.paymentMethod || 'cash',
+              cardId: sub.cardId || '',
+              date: `${selectedMonth}-01`
+            });
+            setShowTransactionForm(true);
+          }}
+          onDeleteSubscription={handleDeleteSubscription}
+        />
       )}
 
       {currentView === 'goals' && (

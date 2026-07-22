@@ -1,24 +1,45 @@
 import React, { useState } from 'react';
-import { formatCurrency } from '../utils/financeCalculator';
-import { Clock, TrendingUp, TrendingDown, ArrowRightLeft, Edit2, Trash2, Search, List, CreditCard } from 'lucide-react';
+import { formatCurrency, getSubscriptionAmountForMonth } from '../utils/financeCalculator';
+import { Clock, TrendingUp, TrendingDown, ArrowRightLeft, Edit2, Trash2, Search, List, CreditCard, RefreshCw } from 'lucide-react';
 
-const History = ({ transactions, creditCards, onEdit, onDelete, onEditPurchase, onDeletePurchase }) => {
+const History = ({ 
+  transactions = [], 
+  creditCards = [], 
+  subscriptions = [], 
+  selectedMonth = '2026-07',
+  onEdit, 
+  onDelete, 
+  onEditPurchase, 
+  onDeletePurchase,
+  onEditSubscription,
+  onDeleteSubscription
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterTab, setFilterTab] = useState('all'); // 'all' | 'variables' | 'fijos'
   const [showAll, setShowAll] = useState(false);
 
-  // Combine direct transactions and credit card purchases
-  const combined = [];
+  // 1. Collect all types of items into a unified collection
+  const combinedItems = [];
 
+  // Direct transactions (variable expenses, incomes, transfers)
   transactions.forEach(t => {
-    combined.push({
-      ...t,
-      source: 'transaction'
+    combinedItems.push({
+      id: t.id,
+      date: t.date || `${selectedMonth}-01`,
+      description: t.description,
+      amount: t.amount,
+      category: t.category,
+      type: t.type, // 'expense', 'income', 'transfer'
+      kind: 'variable',
+      source: 'transaction',
+      raw: t
     });
   });
 
+  // Credit Card Purchases (installments)
   (creditCards || []).forEach(cc => {
     (cc.purchases || []).forEach(p => {
-      combined.push({
+      combinedItems.push({
         id: p.id,
         date: p.date || `${p.startMonth || '2026-07'}-01`,
         description: p.description,
@@ -30,37 +51,70 @@ const History = ({ transactions, creditCards, onEdit, onDelete, onEditPurchase, 
         cardId: cc.id,
         installments: p.installments,
         amountPerMonth: p.amountPerMonth,
+        kind: 'variable',
         source: 'credit_card_purchase',
-        purchase: p
+        raw: p
       });
     });
   });
 
-  // Sort descending by date (latest first)
-  const sorted = combined.sort((a, b) => {
+  // Subscriptions (Fixed Expenses)
+  (subscriptions || []).forEach(sub => {
+    const activeAmount = getSubscriptionAmountForMonth(sub, selectedMonth);
+    if (activeAmount > 0) {
+      const cardObj = sub.paymentMethod === 'credit_card' ? (creditCards || []).find(c => c.id === sub.cardId) : null;
+      combinedItems.push({
+        id: sub.id,
+        date: `${selectedMonth}-01`,
+        description: sub.name,
+        amount: activeAmount,
+        category: sub.category,
+        type: 'subscription',
+        paymentMethod: sub.paymentMethod || 'cash',
+        cardName: cardObj ? cardObj.name : null,
+        cardColor: cardObj ? cardObj.color : null,
+        kind: 'fijo',
+        source: 'subscription',
+        raw: sub
+      });
+    }
+  });
+
+  // Sort descending by date
+  const sorted = combinedItems.sort((a, b) => {
     const dateCompare = b.date.localeCompare(a.date);
     if (dateCompare !== 0) return dateCompare;
     return b.id.localeCompare(a.id);
   });
 
-  // Filter by search query
-  const filtered = sorted.filter(t => 
-    t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (t.cardName && t.cardName.toLowerCase().includes(searchQuery.toLowerCase()))
+  // 2. Filter by selected Tab ('all', 'variables', 'fijos')
+  const tabFiltered = sorted.filter(item => {
+    if (filterTab === 'variables') return item.kind === 'variable';
+    if (filterTab === 'fijos') return item.kind === 'fijo';
+    return true; // 'all'
+  });
+
+  // 3. Filter by Search Query
+  const searchFiltered = tabFiltered.filter(item => 
+    item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.cardName && item.cardName.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // If not searching and not showing all, limit to last 15
-  const displayList = (searchQuery === '' && !showAll) ? filtered.slice(0, 15) : filtered;
+  // Limit display to 15 unless searching or 'showAll' enabled
+  const displayList = (searchQuery === '' && !showAll) ? searchFiltered.slice(0, 15) : searchFiltered;
 
   return (
     <div className="container" style={{ paddingBottom: '5rem' }}>
+      
+      {/* ── HEADER 1: Title ────────────────────── */}
       <div className="sticky-header mb-3">
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
           <Clock size={20} color="#94a3b8" /> Historial de Movimientos
         </h2>
         
-        <div style={{ position: 'relative' }}>
+        {/* ── HEADER 2: Buscador ────────────────────── */}
+        <div style={{ position: 'relative', marginBottom: '1rem' }}>
           <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input 
             type="text" 
@@ -71,11 +125,70 @@ const History = ({ transactions, creditCards, onEdit, onDelete, onEditPurchase, 
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
+        {/* ── HEADER 3: Solapas de Tipo de Gasto (Todos | Variables | Fijos) ── */}
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <button 
+            onClick={() => setFilterTab('all')}
+            style={{
+              flex: 1,
+              padding: '8px 10px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              borderRadius: '0.35rem',
+              border: 'none',
+              background: filterTab === 'all' ? 'var(--primary)' : 'none',
+              color: filterTab === 'all' ? '#000' : 'var(--on-surface-variant)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: filterTab === 'all' ? '0 2px 6px rgba(0, 194, 212, 0.25)' : 'none'
+            }}
+          >
+            Todos
+          </button>
+          <button 
+            onClick={() => setFilterTab('variables')}
+            style={{
+              flex: 1,
+              padding: '8px 10px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              borderRadius: '0.35rem',
+              border: 'none',
+              background: filterTab === 'variables' ? 'var(--primary)' : 'none',
+              color: filterTab === 'variables' ? '#000' : 'var(--on-surface-variant)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: filterTab === 'variables' ? '0 2px 6px rgba(0, 194, 212, 0.25)' : 'none'
+            }}
+          >
+            Gastos Variables
+          </button>
+          <button 
+            onClick={() => setFilterTab('fijos')}
+            style={{
+              flex: 1,
+              padding: '8px 10px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              borderRadius: '0.35rem',
+              border: 'none',
+              background: filterTab === 'fijos' ? 'var(--primary)' : 'none',
+              color: filterTab === 'fijos' ? '#000' : 'var(--on-surface-variant)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: filterTab === 'fijos' ? '0 2px 6px rgba(0, 194, 212, 0.25)' : 'none'
+            }}
+          >
+            Fijos / Suscripciones
+          </button>
+        </div>
       </div>
 
+      {/* Subheader info bar */}
       <div className="flex-between mb-3">
         <span className="text-muted" style={{ fontSize: '0.875rem' }}>
-          {searchQuery !== '' ? `Resultados de búsqueda` : (showAll ? 'Todos los movimientos' : 'Últimos 15 movimientos')}
+          {searchQuery !== '' ? `Resultados de búsqueda (${searchFiltered.length})` : (showAll ? `Todos los movimientos (${searchFiltered.length})` : `Últimos movimientos`)}
         </span>
         {searchQuery === '' && (
           <button onClick={() => setShowAll(!showAll)} className="btn-ghost" style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -84,6 +197,7 @@ const History = ({ transactions, creditCards, onEdit, onDelete, onEditPurchase, 
         )}
       </div>
 
+      {/* List rendered items */}
       {displayList.length === 0 ? (
         <div className="glass-panel text-center text-muted" style={{ padding: '2rem' }}>
           No se encontraron movimientos.
@@ -111,10 +225,15 @@ const History = ({ transactions, creditCards, onEdit, onDelete, onEditPurchase, 
               iconColor = t.cardColor || '#70a1ff';
               amountColor = '#ff4757';
               amountPrefix = '-';
+            } else if (t.type === 'subscription') {
+              Icon = RefreshCw;
+              iconColor = 'var(--primary)';
+              amountColor = '#ff4757';
+              amountPrefix = '-';
             }
 
             return (
-              <div key={t.id} className="glass-panel" style={{ padding: '1rem' }}>
+              <div key={`${t.source}-${t.id}`} className="glass-panel" style={{ padding: '1rem' }}>
                 <div className="flex-between">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '50%', display: 'flex' }}>
@@ -125,6 +244,8 @@ const History = ({ transactions, creditCards, onEdit, onDelete, onEditPurchase, 
                       <div className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'capitalize', marginTop: '2px' }}>
                         {t.type === 'credit_card' ? (
                           <span>Tarjeta · <span style={{ color: t.cardColor, fontWeight: 500 }}>{t.cardName}</span> · {t.installments} cuotas de {formatCurrency(t.amountPerMonth)}</span>
+                        ) : t.type === 'subscription' ? (
+                          <span>Gasto Fijo Recurrente {t.cardName ? `· Tarjeta ${t.cardName}` : ''}</span>
                         ) : (
                           t.category.replace('-', ' ')
                         )}
@@ -140,18 +261,31 @@ const History = ({ transactions, creditCards, onEdit, onDelete, onEditPurchase, 
                 
                 {/* Actions */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--glass-border)' }}>
-                  {t.source === 'credit_card_purchase' ? (
+                  {t.source === 'credit_card_purchase' && (
                     <>
-                      <button onClick={() => onEditPurchase(t.cardId, t.purchase)} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--on-surface-variant)', border: 'none' }}>
+                      <button onClick={() => onEditPurchase(t.cardId, t.raw)} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--on-surface-variant)', border: 'none' }}>
                         <Edit2 size={14} /> Editar
                       </button>
                       <button onClick={() => { if(window.confirm('¿Seguro que quieres borrar esta compra?')) onDeletePurchase(t.cardId, t.id) }} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--error)', border: 'none' }}>
                         <Trash2 size={14} /> Borrar
                       </button>
                     </>
-                  ) : (
+                  )}
+
+                  {t.source === 'subscription' && (
                     <>
-                      <button onClick={() => onEdit(t)} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--on-surface-variant)', border: 'none' }}>
+                      <button onClick={() => onEditSubscription && onEditSubscription(t.raw)} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--on-surface-variant)', border: 'none' }}>
+                        <Edit2 size={14} /> Editar
+                      </button>
+                      <button onClick={() => { if(window.confirm('¿Seguro que quieres borrar este gasto fijo?')) onDeleteSubscription && onDeleteSubscription(t.id) }} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--error)', border: 'none' }}>
+                        <Trash2 size={14} /> Borrar
+                      </button>
+                    </>
+                  )}
+
+                  {t.source === 'transaction' && (
+                    <>
+                      <button onClick={() => onEdit(t.raw)} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--on-surface-variant)', border: 'none' }}>
                         <Edit2 size={14} /> Editar
                       </button>
                       <button onClick={() => { if(window.confirm('¿Seguro que quieres borrar este movimiento?')) onDelete(t.id) }} className="btn-ghost" style={{ padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--error)', border: 'none' }}>
